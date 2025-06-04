@@ -1,24 +1,59 @@
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "@mui/material/styles";
+import createCustomTheme from "./theme";
+
+import "./App.scss";
+import "bootstrap/dist/js/bootstrap.min.js";
+
+import Login from "./pages/auth/Login";
+import Dashboard from "./pages/dashboard/Dashboard.jsx";
+import Subadmin from "./pages/subadmin/Subadmin.jsx";
+import UserList from "./pages/users/UserList.jsx";
+import WalletTransaction from "./pages/transacrions/wallet/WalletTransaction.jsx";
+import MoneyArtTransaction from "./pages/transacrions/moneyart/MoneyArtTransaction.jsx";
+import MobileRechargeTransaction from "./pages/transacrions/mobilerecharge/MobileRechargeTransaction.jsx";
+import NotificationList from "./pages/notification/list/NotificationList.jsx";
+import SendNotification from "./pages/notification/send/SendNotification.jsx";
+import AddSubAdminForm from "./pages/subadmin/add/NewSubAdmin.jsx";
+import Error404 from "./pages/error/Error.jsx";
+import EditSubadmin from "./pages/subadmin/edit/EditSubadmin.jsx";
+import Profile from "./pages/profile/Profile.jsx";
+import EditProfile from "./pages/profile/edit/EditProfile.jsx";
+import Kyc from "./pages/kyc/Kyc.jsx";
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <ThemeProvider theme={createCustomTheme}>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/sub-admin" element={<Subadmin />} />
+          <Route path="/sub-admin/new" element={<AddSubAdminForm />} />
+          <Route path="/sub-admin/edit/:id" element={<EditSubadmin />} />
+          <Route path="/users" element={<UserList />} />
+          <Route path="/wallet/transaction" element={<WalletTransaction />} />
+          <Route
+            path="/moneyart/transaction"
+            element={<MoneyArtTransaction />}
+          />
+          <Route
+            path="/mobile/recharge/transaction"
+            element={<MobileRechargeTransaction />}
+          />
+          <Route path="/notification/send" element={<SendNotification />} />
+          <Route path="/notification/list" element={<NotificationList />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/edit" element={<EditProfile />} />
+          <Route path="/kyc" element={<Kyc />} />
+
+          
+
+          <Route path="*" element={<Error404 />} />
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }
 
