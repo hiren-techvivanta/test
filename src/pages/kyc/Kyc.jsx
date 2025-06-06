@@ -174,13 +174,13 @@ const Kyc = () => {
                   <div className="col-12 d-flex justify-content-around">
                     <button
                       className="btn btn-success"
-                      onClick={(e) => handleSubmit(e, "Approve")}
+                      onClick={(e) => handleSubmit(e, "Approved")}
                     >
                       <AddRoundedIcon /> Approve
                     </button>
                     <button
                       className="btn btn-danger"
-                      onClick={(e) => handleSubmit(e, "Reject")}
+                      onClick={(e) => handleSubmit(e, "Rejected")}
                     >
                       <CloseRoundedIcon /> Reject
                     </button>
