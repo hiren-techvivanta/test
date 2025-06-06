@@ -116,7 +116,7 @@ const Kyc = () => {
         </Modal.Header>
         <Modal.Body className="px-2">
           <div className="container-fluid">
-            <div className="row">
+            <div className="row g-3">
               <div className="col-12">
                 <table className="table">
                   <tbody>
@@ -159,8 +159,8 @@ const Kyc = () => {
                   alt={filterData?.first_name}
                 />
               </div>
-            </div>
-            {filterData?.status === "Pending" && (
+               <div className="col-12">
+             {filterData?.status === "Pending" && (
               <form>
                 <div className="row g-3">
                   <div className="col-12">
@@ -188,6 +188,8 @@ const Kyc = () => {
                 </div>
               </form>
             )}
+           </div>
+            </div>
           </div>
         </Modal.Body>
       </Modal>
