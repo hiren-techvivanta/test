@@ -151,7 +151,10 @@ const Kyc = () => {
               </div>
               <div className="col-12">
                 <img
-                  src={filterData?.document_image_url}
+                  src={filterData?.document_image_url?.replace(
+                    "http://185.131.54.49:9292",
+                    "https://uatwavemoney.onewave.app"
+                  )}
                   className="img-fluid"
                   alt={filterData?.first_name}
                 />
