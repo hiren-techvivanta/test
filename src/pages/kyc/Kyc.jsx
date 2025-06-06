@@ -15,6 +15,9 @@ import { toast } from "react-toastify";
 import axios from "axios";
 import { Modal } from "react-bootstrap";
 import Loader from "../../components/Loader";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 
 const config = {
   headers: {
@@ -26,7 +29,6 @@ const Kyc = () => {
   const [resultsPerPage, setResultsPerPage] = useState(10);
   const [userData, setUserData] = useState([]);
   const [modalShow, setModalShow] = React.useState(false);
-  const [status, setStatus] = useState("");
   const [id, setid] = useState("");
   const [loading, setloading] = useState(false);
 
@@ -57,9 +59,8 @@ const Kyc = () => {
     }
   };
 
-  const handleUpdateStatus = (e, s, id) => {
+  const handleUpdateStatus = (e, id) => {
     e.preventDefault();
-    setStatus(s);
     setid(id);
     setModalShow(true);
   };
@@ -67,8 +68,9 @@ const Kyc = () => {
   // approve reaject modal
   function MyVerticallyCenteredModal(props) {
     const [message, setmessage] = useState("");
+    const [filterData, setFilterData] = useState({});
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e, status) => {
       e.preventDefault();
 
       try {
@@ -83,7 +85,6 @@ const Kyc = () => {
         );
 
         if (data.error === "") {
-          setStatus("");
           setid("");
           getData();
           toast.success(data.message);
@@ -93,6 +94,14 @@ const Kyc = () => {
         toast.error(e.response.data.message || "Internal server error");
       }
     };
+
+    useEffect(() => {
+      if (modalShow === true && id !== "") {
+        const filteredData = userData.filter((e) => e.id === id);
+        setFilterData(filteredData[0]);
+      }
+    }, [modalShow, id]);
+
     return (
       <Modal
         {...props}
@@ -105,34 +114,77 @@ const Kyc = () => {
             Update Status
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body className="px-2">
           <div className="container-fluid">
-            <form onSubmit={handleSubmit}>
-              <div className="row g-3">
-                <div className="col-12">
-                  <label className="form-label">Status</label>
-                  <input
-                    type="text"
-                    value={status}
-                    disabled
-                    className="form-control"
-                  />
-                </div>
-                <div className="col-12">
-                  <label className="form-label">Message</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    onChange={(e) => setmessage(e.target.value)}
-                  />
-                </div>
-                <div className="col-12">
-                  <button className="btn btn-primary" type="submit">
-                    Submit
-                  </button>
-                </div>
+            <div className="row">
+              <div className="col-12">
+                <table className="table">
+                  <tbody>
+                    <tr>
+                      <th>Name</th>
+                      <td>{`${filterData?.first_name} ${filterData?.last_name}`}</td>
+                    </tr>
+                    <tr>
+                      <th>Email</th>
+                      <td>{filterData?.email}</td>
+                    </tr>
+                    <tr>
+                      <th>DOB</th>
+                      <td>{filterData?.dob}</td>
+                    </tr>
+                    <tr>
+                      <th>Mobile No.</th>
+                      <td>{filterData?.phone_number}</td>
+                    </tr>
+                    <tr>
+                      <th>Address</th>
+                      <td>
+                        {`${filterData?.residential_address?.line1}, ${filterData?.residential_address?.line2}, ${filterData?.residential_address?.street}, ${filterData?.residential_address?.city}, ${filterData?.residential_address?.state}, ${filterData?.residential_address?.country} - ${filterData?.residential_address?.postalCode}`}
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>Document No.</th>
+                      <td>{filterData?.id_document_number}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-            </form>
+              <div className="col-12">
+                <img
+                  src={filterData?.document_image_url}
+                  className="img-fluid"
+                  alt={filterData?.first_name}
+                />
+              </div>
+            </div>
+            {filterData?.status === "Pending" && (
+              <form>
+                <div className="row g-3">
+                  <div className="col-12">
+                    <label className="form-label">Message</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      onChange={(e) => setmessage(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-12 d-flex justify-content-around">
+                    <button
+                      className="btn btn-success"
+                      onClick={(e) => handleSubmit(e, "Approve")}
+                    >
+                      <AddRoundedIcon /> Approve
+                    </button>
+                    <button
+                      className="btn btn-danger"
+                      onClick={(e) => handleSubmit(e, "Reject")}
+                    >
+                      <CloseRoundedIcon /> Reject
+                    </button>
+                  </div>
+                </div>
+              </form>
+            )}
           </div>
         </Modal.Body>
       </Modal>
@@ -198,32 +250,14 @@ const Kyc = () => {
                                       </td>
                                       <td>
                                         <div className="d-flex justify-content-around">
-                                          <Tooltip title="Approve">
+                                          <Tooltip title="View Details">
                                             <IconButton
-                                              color="success"
+                                              color="info"
                                               onClick={(e) =>
-                                                handleUpdateStatus(
-                                                  e,
-                                                  "Approved",
-                                                  val.id
-                                                )
+                                                handleUpdateStatus(e, val.id)
                                               }
                                             >
-                                              <AddTaskIcon />
-                                            </IconButton>
-                                          </Tooltip>
-                                          <Tooltip title="Reject">
-                                            <IconButton
-                                              color="error"
-                                              onClick={(e) =>
-                                                handleUpdateStatus(
-                                                  e,
-                                                  "Rejected",
-                                                  val.id
-                                                )
-                                              }
-                                            >
-                                              <DeleteForeverRoundedIcon />
+                                              <VisibilityRoundedIcon />
                                             </IconButton>
                                           </Tooltip>
                                         </div>
