@@ -160,6 +160,9 @@ const Kyc = () => {
                 />
               </div>
                <div className="col-12">
+                { filterData?.admin_message && <p className="text-black-50 m-0"><span className="text-black">Admin message : </span>{filterData?.admin_message}</p>}
+               </div>
+               <div className="col-12">
              {filterData?.status === "Pending" && (
               <form>
                 <div className="row g-3">

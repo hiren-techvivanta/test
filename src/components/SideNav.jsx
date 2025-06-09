@@ -1,13 +1,26 @@
 import { Avatar } from "@mui/material";
-import React from "react";
-import { Link, useLocation } from "react-router-dom";
-import i1 from '../assets/logo/logo.png'
+import React, { useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import i1 from "../assets/logo/logo.png";
 // import second from 'first'
 
 const SideNav = () => {
+  const navigate = useNavigate();
   const location = useLocation();
 
   const isActive = (path) => location.pathname === path;
+  const auth = localStorage.getItem("admin");
+  useEffect(() => {
+    if (!auth) {
+      navigate("/login");
+    }
+  }, [auth]);
+
+  const handleLogOut = (e) => {
+    e.preventDefault();
+    localStorage.removeItem("admin")
+    navigate("/login")
+  };
 
   return (
     <aside className="col-lg-3 pe-lg-4 pe-xl-5 mt-n3">
@@ -145,7 +158,7 @@ const SideNav = () => {
                 className={`nav-link fw-semibold py-2 px-0 ${
                   isActive("/login") ? "active" : ""
                 }`}
-                to="/login"
+                onClick={(e) => handleLogOut(e)}
               >
                 <i className="ai-logout fs-5 opacity-60 me-2"></i>
                 Sign out
