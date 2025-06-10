@@ -21,6 +21,7 @@ import EditSubadmin from "./pages/subadmin/edit/EditSubadmin.jsx";
 import Profile from "./pages/profile/Profile.jsx";
 import EditProfile from "./pages/profile/edit/EditProfile.jsx";
 import Kyc from "./pages/kyc/Kyc.jsx";
+import WalletMangement from "./pages/wallet/WalletMangement.jsx";
 
 function App() {
   return (
@@ -47,6 +48,7 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/edit" element={<EditProfile />} />
           <Route path="/kyc" element={<Kyc />} />
+          <Route path="/wallet/mangement" element={<WalletMangement />} />
 
           
 

@@ -82,6 +82,15 @@ const SideNav = () => {
                 User List
                 {/* <span className="badge bg-danger ms-auto">4</span> */}
               </Link>
+                <Link
+                className={`nav-link fw-semibold py-2 px-0 ${
+                  isActive("/wallet/mangement") ? "active" : ""
+                }`}
+                to="/wallet/mangement"
+              >
+                <i className="ai-dollar fs-5 opacity-60 me-2"></i>
+                Wallet Management
+              </Link>
               <Link
                 className={`nav-link fw-semibold py-2 px-0 ${
                   isActive("/wallet/transaction") ? "active" : ""
