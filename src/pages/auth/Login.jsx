@@ -1,8 +1,11 @@
+import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import Cookies from 'js-cookie'
 
 const Login = () => {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -11,12 +14,12 @@ const Login = () => {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
 
-    const auth = localStorage.getItem("admin");
-    useEffect(() => {
-      if (auth) {
-        navigate("/");
-      }
-    }, [auth]);
+  const auth = Cookies.get("authToken");
+  useEffect(() => {
+    if (auth) {
+      navigate("/");
+    }
+  }, [auth]);
 
   const handleChange = (e) => {
     setFormData((prev) => ({
@@ -44,7 +47,7 @@ const Login = () => {
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
@@ -52,9 +55,32 @@ const Login = () => {
       return;
     }
 
-    if (formData.email === "admin@onewave.com" && formData.password === "LFn=33e85e") {
-      localStorage.setItem("admin","admin@onewave.com")
-      navigate("/")
+    const formDatas = {
+      email: formData.email,
+      password: formData.password,
+      device_info: "iPhone 13, iOS 17.1",
+      app_version: "1.2.5",
+    };
+
+    try {
+      const { data } = await axios.post(
+        `${process.env.REACT_APP_BACKEND_URL}/api/auth/login/`,formDatas
+      );
+
+      if (data.status ===  200) {
+        Cookies.set('authToken', data.data.our_tokens.access)
+        toast.success('Login Successfull')
+        navigate("/")
+      }
+    } catch (e) {
+      toast.error(e.response.data.message || "Internal server error")
+    }
+    if (
+      formData.email === "admin@onewave.com" &&
+      formData.password === "LFn=33e85e"
+    ) {
+      localStorage.setItem("admin", "admin@onewave.com");
+      navigate("/");
     }
 
     // Reset errors on success

@@ -2,14 +2,14 @@ import { Avatar } from "@mui/material";
 import React, { useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import i1 from "../assets/logo/logo.png";
-// import second from 'first'
+import Cookies from 'js-cookie'
 
 const SideNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
   const isActive = (path) => location.pathname === path;
-  const auth = localStorage.getItem("admin");
+  const auth = Cookies.get("authToken");
   useEffect(() => {
     if (!auth) {
       navigate("/login");
