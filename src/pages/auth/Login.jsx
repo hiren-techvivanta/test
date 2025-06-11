@@ -2,7 +2,7 @@ import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import Cookies from 'js-cookie'
+import Cookies from "js-cookie";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -10,6 +10,7 @@ const Login = () => {
     email: "",
     password: "",
   });
+  const [loading, setloading] = useState(false);
 
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
@@ -54,6 +55,7 @@ const Login = () => {
       setErrors(validationErrors);
       return;
     }
+    setloading(true);
 
     const formDatas = {
       email: formData.email,
@@ -64,31 +66,25 @@ const Login = () => {
 
     try {
       const { data } = await axios.post(
-        `${process.env.REACT_APP_BACKEND_URL}/api/auth/login/`,formDatas
+        `${process.env.REACT_APP_BACKEND_URL}/api/auth/login/`,
+        formDatas
       );
 
-      if (data.status ===  200) {
-        Cookies.set('authToken', data.data.our_tokens.access)
-        toast.success('Login Successfull')
-        navigate("/")
+      if (data.status === 200) {
+        Cookies.set("authToken", data.data.our_tokens.access);
+        toast.success("Login Successfull");
+        navigate("/");
+        setloading(false);
       }
     } catch (e) {
-      toast.error(e.response.data.message || "Internal server error")
+      toast.error(e.response.data.error || "Internal server error");
+      setloading(false);
     }
-    if (
-      formData.email === "admin@onewave.com" &&
-      formData.password === "LFn=33e85e"
-    ) {
-      localStorage.setItem("admin", "admin@onewave.com");
-      navigate("/");
-    }
-
-    // Reset errors on success
     setErrors({});
   };
 
   return (
-    <div className="container mt-5">
+    <div className="container mt-5 pt-5">
       <div className="row justify-content-center">
         <div className="col-md-6 col-xl-5">
           <h2 className="text-center mb-4">Login</h2>
@@ -116,7 +112,7 @@ const Login = () => {
               <label htmlFor="password" className="form-label">
                 Password
               </label>
-              <div className="input-group">
+              <div className="input-group p-0">
                 <input
                   type={showPassword ? "text" : "password"}
                   name="password"
@@ -140,12 +136,12 @@ const Login = () => {
                   />
                   <span class="password-toggle-indicator"></span>
                 </label>
-                {errors.password && (
-                  <div className="invalid-feedback d-block">
-                    {errors.password}
-                  </div>
-                )}
               </div>
+              {errors.password && (
+                <div className="invalid-feedback d-block">
+                  {errors.password}
+                </div>
+              )}
             </div>
 
             <div className="d-flex justify-content-between align-items-center mb-3">
@@ -164,9 +160,24 @@ const Login = () => {
               </a>
             </div>
 
-            <button type="submit" className="btn btn-primary w-100 btn-lg">
-              Sign In
-            </button>
+            {loading === false ? (
+              <>
+                <button type="submit" className="btn btn-primary w-100 btn-lg">
+                  Sign In
+                </button>
+              </>
+            ) : (
+              <>
+                <button disabled className="btn btn-primary w-100 btn-lg">
+                  <span
+                    class="spinner-border spinner-border-sm me-2"
+                    role="status"
+                    aria-hidden="true"
+                  ></span>
+                  Loading...
+                </button>
+              </>
+            )}
           </form>
         </div>
       </div>

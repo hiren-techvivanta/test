@@ -18,15 +18,7 @@ import Loader from "../../components/Loader";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import Cookies from 'js-cookie'
-
-const token = Cookies.get("authToken")
-
-const config = {
-  headers: {
-    Authorization: `Bearer ${token}`,
-  },
-};
+import Cookies from "js-cookie";
 
 const Kyc = () => {
   const [resultsPerPage, setResultsPerPage] = useState(10);
@@ -34,6 +26,14 @@ const Kyc = () => {
   const [modalShow, setModalShow] = React.useState(false);
   const [id, setid] = useState("");
   const [loading, setloading] = useState(false);
+
+  const token = Cookies.get("authToken");
+
+  const config = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
 
   const handleChange = (event) => {
     setResultsPerPage(event.target.value);
@@ -44,7 +44,6 @@ const Kyc = () => {
     if (token) {
       getData();
     }
-    
   }, [token]);
 
   const getData = async () => {
@@ -165,39 +164,44 @@ const Kyc = () => {
                   alt={filterData?.first_name}
                 />
               </div>
-               <div className="col-12">
-                { filterData?.admin_message && <p className="text-black-50 m-0"><span className="text-black">Admin message : </span>{filterData?.admin_message}</p>}
-               </div>
-               <div className="col-12">
-             {filterData?.status === "Pending" && (
-              <form>
-                <div className="row g-3">
-                  <div className="col-12">
-                    <label className="form-label">Message</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      onChange={(e) => setmessage(e.target.value)}
-                    />
-                  </div>
-                  <div className="col-12 d-flex justify-content-around">
-                    <button
-                      className="btn btn-success"
-                      onClick={(e) => handleSubmit(e, "Approved")}
-                    >
-                      <AddRoundedIcon /> Approve
-                    </button>
-                    <button
-                      className="btn btn-danger"
-                      onClick={(e) => handleSubmit(e, "Rejected")}
-                    >
-                      <CloseRoundedIcon /> Reject
-                    </button>
-                  </div>
-                </div>
-              </form>
-            )}
-           </div>
+              <div className="col-12">
+                {filterData?.admin_message && (
+                  <p className="text-black-50 m-0">
+                    <span className="text-black">Admin message : </span>
+                    {filterData?.admin_message}
+                  </p>
+                )}
+              </div>
+              <div className="col-12">
+                {filterData?.status === "Pending" && (
+                  <form>
+                    <div className="row g-3">
+                      <div className="col-12">
+                        <label className="form-label">Message</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          onChange={(e) => setmessage(e.target.value)}
+                        />
+                      </div>
+                      <div className="col-12 d-flex justify-content-around">
+                        <button
+                          className="btn btn-success"
+                          onClick={(e) => handleSubmit(e, "Approved")}
+                        >
+                          <AddRoundedIcon /> Approve
+                        </button>
+                        <button
+                          className="btn btn-danger"
+                          onClick={(e) => handleSubmit(e, "Rejected")}
+                        >
+                          <CloseRoundedIcon /> Reject
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                )}
+              </div>
             </div>
           </div>
         </Modal.Body>

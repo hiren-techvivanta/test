@@ -2,7 +2,7 @@ import { Avatar } from "@mui/material";
 import React, { useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import i1 from "../assets/logo/logo.png";
-import Cookies from 'js-cookie'
+import Cookies from "js-cookie";
 
 const SideNav = () => {
   const navigate = useNavigate();
@@ -18,8 +18,9 @@ const SideNav = () => {
 
   const handleLogOut = (e) => {
     e.preventDefault();
-    localStorage.removeItem("admin")
-    navigate("/login")
+    localStorage.removeItem("admin");
+    Cookies.remove("authToken");
+    navigate("/login");
   };
 
   return (
@@ -82,7 +83,7 @@ const SideNav = () => {
                 User List
                 {/* <span className="badge bg-danger ms-auto">4</span> */}
               </Link>
-                <Link
+              <Link
                 className={`nav-link fw-semibold py-2 px-0 ${
                   isActive("/wallet/mangement") ? "active" : ""
                 }`}
