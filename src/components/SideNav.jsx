@@ -108,7 +108,16 @@ const SideNav = () => {
                 to="/moneyart/transaction"
               >
                 <i className="ai-list fs-5 opacity-60 me-2"></i>
-                Moneyart Transaction
+                Moneyart Bill Transaction
+              </Link>
+               <Link
+                className={`nav-link fw-semibold py-2 px-0 ${
+                  isActive("/card/transaction") ? "active" : ""
+                }`}
+                to="/card/list"
+              >
+                <i className="ai-card fs-5 opacity-60 me-2"></i>
+               Aeropay Card List
               </Link>
               <Link
                 className={`nav-link fw-semibold py-2 px-0 ${
@@ -118,6 +127,15 @@ const SideNav = () => {
               >
                 <i className="ai-mobile fs-5 opacity-60 me-2"></i>
                 Mobile Recharge Transaction
+              </Link>
+               <Link
+                className={`nav-link fw-semibold py-2 px-0 ${
+                  isActive("/cripto/transaction") ? "active" : ""
+                }`}
+                to="/cripto/transaction"
+              >
+                <i className="ai-shuffle fs-5 opacity-60 me-2"></i>
+               Crypto Transaction
               </Link>
               <Link
                 className={`nav-link fw-semibold py-2 px-0 ${

@@ -20,12 +20,12 @@ import {
   Button,
 } from "@mui/material";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
-import SideNav from "../../../components/SideNav";
 import axios from "axios";
 import Cookies from "js-cookie";
 import dayjs from "dayjs";
+import SideNav from "../../../components/SideNav";
 
-const MoneyArtTransaction = () => {
+const AeroPayTransaction = () => {
   const [resultsPerPage, setResultsPerPage] = useState(10);
   const [transactions, setTransactions] = useState([]);
   const [email, setEmail] = useState("");
@@ -60,7 +60,7 @@ const MoneyArtTransaction = () => {
       );
 
       const res = await axios.get(
-        `${process.env.REACT_APP_BACKEND_URL}/api/utility-app/admin/bill-transactions/`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/card/admin/cards/`,
         {
           headers: { Authorization: `Bearer ${token}` },
           params,
@@ -68,15 +68,14 @@ const MoneyArtTransaction = () => {
       );
 
       if (res.data.status === 200) {
-        const { transactions, pagination: pg } = res.data.data;
-        setTransactions(transactions);
+        setTransactions(res.data.data.cards || []);
         setPagination({
-          current_page: pg.current_page,
-          total_pages: pg.total_pages,
+          current_page: res.data.data.pagination.current_page || 1,
+          total_pages: res.data.data.pagination.total_pages || 1,
         });
       }
     } catch (error) {
-      console.error(error);
+      console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
@@ -101,7 +100,7 @@ const MoneyArtTransaction = () => {
 
   const handlePageChange = (event, page) => {
     setPagination((prev) => ({ ...prev, current_page: page }));
-    getData(page, resultsPerPage);
+    getData(page);
   };
 
   const handleFilterSubmit = (e) => {
@@ -126,12 +125,12 @@ const MoneyArtTransaction = () => {
     <div className="container py-5 mb-lg-4">
       <div className="row pt-sm-2 pt-lg-0">
         <SideNav />
-
         <div className="col-lg-9 pt-4 pb-2 pb-sm-4">
           <div className="d-sm-flex align-items-center mb-4">
-            <h1 className="h2 mb-4 mb-sm-0 me-4">Moneyart Transaction List</h1>
+            <h1 className="h2 mb-4 mb-sm-0 me-4">AeroPay Card List</h1>
           </div>
 
+          {/* Filter Form */}
           <form onSubmit={handleFilterSubmit} className="mb-4">
             <div className="row g-3">
               <div className="col-md-3">
@@ -175,56 +174,43 @@ const MoneyArtTransaction = () => {
                 />
               </div>
               <div className="col-md-2 d-flex align-items-end">
-                <Button
-                  variant="contained"
-                  color="primary"
-                  type="submit"
-                  fullWidth
-                >
+                <Button variant="contained" color="primary" type="submit" fullWidth>
                   Apply
                 </Button>
               </div>
               <div className="col-md-2 d-flex align-items-end">
-                <Button
-                  variant="outlined"
-                  color="light"
-                  onClick={resetFilters}
-                  fullWidth
-                >
+                <Button variant="outlined" onClick={resetFilters} fullWidth>
                   Reset
                 </Button>
               </div>
             </div>
           </form>
 
+          {/* Table */}
           <div className="card shadow border-0">
             <div className="card-body">
-              <div className="overflow-auto">
-                <table className="table">
-                  <thead>
+              <div className="table-responsive">
+                <table className="table table-striped table-hover">
+                  <thead className="">
                     <tr>
                       <th>#</th>
-                      <th>Date & Time</th>
-                      <th>Order Id</th>
-                      <th>Bill Ref No</th>
-                      <th>User</th>
-                      <th>Mobile No.</th>
+                      <th>Email</th>
+                      <th>Card Number</th>
                       <th>Status</th>
-                      <th>Amount</th>
-                      <th>Message</th>
+                      <th>Created At</th>
                       <th>Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loading ? (
                       <tr>
-                        <td colSpan="10" align="center">
+                        <td colSpan="6" align="center">
                           Loading...
                         </td>
                       </tr>
                     ) : transactions.length === 0 ? (
                       <tr>
-                        <td colSpan="10" align="center">
+                        <td colSpan="6" align="center">
                           No data found
                         </td>
                       </tr>
@@ -232,33 +218,21 @@ const MoneyArtTransaction = () => {
                       transactions.map((txn, idx) => (
                         <tr key={txn.id}>
                           <td>
-                            {(pagination.current_page - 1) * resultsPerPage +
-                              idx +
-                              1}
+                            {(pagination.current_page - 1) * resultsPerPage + idx + 1}
                           </td>
-                          <td>
-                            {dayjs(txn.created_at).format("DD/MM/YYYY hh:mm A")}
-                          </td>
-                          <td>{txn.order_id}</td>
-                          <td>{txn.bill_ref_no}</td>
-                          <td>{txn.user_details?.full_name}</td>
-                          <td>{txn.user_details?.phone_number}</td>
+                          <td>{txn.user_details?.email || "N/A"}</td>
+                          <td>{txn.masked_pan || "N/A"}</td>
                           <td>
                             <span
-                              className={`badge bg-${
-                                txn.status === "success" ? "success" : "warning"
-                              }`}
+                              className={`badge bg-${txn.status === "ACTIVE" ? "success" : "secondary"}`}
                             >
                               {txn.status}
                             </span>
                           </td>
-                          <td>$ {txn.amount}</td>
-                          <td>{txn.message}</td>
+                          <td>{dayjs(txn.created_at).format("DD/MM/YYYY hh:mm A")}</td>
                           <td>
                             <Tooltip title="View Details">
-                              <IconButton color="info"
-                                onClick={() => handleViewDetails(txn)}
-                              >
+                              <IconButton onClick={() => handleViewDetails(txn)}>
                                 <VisibilityRoundedIcon />
                               </IconButton>
                             </Tooltip>
@@ -268,69 +242,57 @@ const MoneyArtTransaction = () => {
                     )}
                   </tbody>
                 </table>
+              </div>
 
-                <div className="container-fluid">
-                  <div className="row">
-                    <div className="col-3">
-                      <FormControl variant="standard" fullWidth>
-                        <InputLabel id="results-label">Results</InputLabel>
-                        <Select
-                          labelId="results-label"
-                          id="results-select"
-                          value={resultsPerPage}
-                          onChange={handleChange}
-                        >
-                          <MenuItem value={10}>10</MenuItem>
-                          <MenuItem value={25}>25</MenuItem>
-                          <MenuItem value={50}>50</MenuItem>
-                          <MenuItem value={100}>100</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </div>
-                    <div className="col-9 d-flex justify-content-end">
-                      <Pagination
-                        count={pagination.total_pages}
-                        page={pagination.current_page}
-                        onChange={handlePageChange}
-                        color="primary"
-                      />
-                    </div>
+              {/* Pagination Controls */}
+              <div className="container-fluid mt-3">
+                <div className="row">
+                  <div className="col-3">
+                    <FormControl variant="standard" fullWidth>
+                      <InputLabel>Results</InputLabel>
+                      <Select value={resultsPerPage} onChange={handleChange}>
+                        <MenuItem value={10}>10</MenuItem>
+                        <MenuItem value={25}>25</MenuItem>
+                        <MenuItem value={50}>50</MenuItem>
+                        <MenuItem value={100}>100</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </div>
+                  <div className="col-9 d-flex justify-content-end">
+                    <Pagination
+                      count={pagination.total_pages}
+                      page={pagination.current_page}
+                      onChange={handlePageChange}
+                      color="primary"
+                    />
                   </div>
                 </div>
-
-                <Dialog
-                  open={open}
-                  onClose={() => setOpen(false)}
-                  maxWidth="md"
-                  fullWidth
-                >
-                  <DialogTitle>Transaction Details</DialogTitle>
-                  <DialogContent
-                    style={{ maxHeight: "80vh", overflow: "auto" }}
-                  >
-                    {selectedTransaction ? (
-                      <Table>
-                        <TableBody>
-                          {Object.entries(selectedTransaction).map(
-                            ([key, value]) => (
-                              <TableRow key={key}>
-                                <TableCell>{key}</TableCell>
-                                <TableCell>
-                                  {typeof value === "object"
-                                    ? JSON.stringify(value)
-                                    : value}
-                                </TableCell>
-                              </TableRow>
-                            )
-                          )}
-                        </TableBody>
-                      </Table>
-                    ) : (
-                      <DialogContentText>No data available</DialogContentText>
-                    )}
-                  </DialogContent>
-                </Dialog>
               </div>
+
+              {/* View Details Modal */}
+              <Dialog open={open} onClose={() => setOpen(false)} maxWidth="md" fullWidth>
+                <DialogTitle>Card Details</DialogTitle>
+                <DialogContent style={{ maxHeight: "80vh", overflow: "auto" }}>
+                  {selectedTransaction ? (
+                    <Table>
+                      <TableBody>
+                        {Object.entries(selectedTransaction).map(([key, value]) => (
+                          <TableRow key={key}>
+                            <TableCell>{key}</TableCell>
+                            <TableCell>
+                              {typeof value === "object"
+                                ? JSON.stringify(value, null, 2)
+                                : value}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <DialogContentText>No data available</DialogContentText>
+                  )}
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </div>
@@ -339,4 +301,4 @@ const MoneyArtTransaction = () => {
   );
 };
 
-export default MoneyArtTransaction;
+export default AeroPayTransaction;

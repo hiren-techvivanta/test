@@ -123,36 +123,38 @@ const Kyc = () => {
           <div className="container-fluid">
             <div className="row g-3">
               <div className="col-12">
-                <table className="table">
-                  <tbody>
-                    <tr>
-                      <th>Name</th>
-                      <td>{`${filterData?.first_name} ${filterData?.last_name}`}</td>
-                    </tr>
-                    <tr>
-                      <th>Email</th>
-                      <td>{filterData?.email}</td>
-                    </tr>
-                    <tr>
-                      <th>DOB</th>
-                      <td>{filterData?.dob}</td>
-                    </tr>
-                    <tr>
-                      <th>Mobile No.</th>
-                      <td>{filterData?.phone_number}</td>
-                    </tr>
-                    <tr>
-                      <th>Address</th>
-                      <td>
-                        {`${filterData?.residential_address?.line1}, ${filterData?.residential_address?.line2}, ${filterData?.residential_address?.street}, ${filterData?.residential_address?.city}, ${filterData?.residential_address?.state}, ${filterData?.residential_address?.country} - ${filterData?.residential_address?.postalCode}`}
-                      </td>
-                    </tr>
-                    <tr>
-                      <th>Document No.</th>
-                      <td>{filterData?.id_document_number}</td>
-                    </tr>
-                  </tbody>
-                </table>
+                <div className="overflow-auto">
+                  <table className="table">
+                    <tbody>
+                      <tr>
+                        <th>Name</th>
+                        <td>{`${filterData?.first_name} ${filterData?.last_name}`}</td>
+                      </tr>
+                      <tr>
+                        <th>Email</th>
+                        <td>{filterData?.email}</td>
+                      </tr>
+                      <tr>
+                        <th>DOB</th>
+                        <td>{filterData?.dob}</td>
+                      </tr>
+                      <tr>
+                        <th>Mobile No.</th>
+                        <td>{filterData?.phone_number}</td>
+                      </tr>
+                      <tr>
+                        <th>Address</th>
+                        <td>
+                          {`${filterData?.residential_address?.line1}, ${filterData?.residential_address?.line2}, ${filterData?.residential_address?.street}, ${filterData?.residential_address?.city}, ${filterData?.residential_address?.state}, ${filterData?.residential_address?.country} - ${filterData?.residential_address?.postalCode}`}
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>Document No.</th>
+                        <td>{filterData?.id_document_number}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
               <div className="col-12">
                 <img

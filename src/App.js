@@ -22,6 +22,8 @@ import Profile from "./pages/profile/Profile.jsx";
 import EditProfile from "./pages/profile/edit/EditProfile.jsx";
 import Kyc from "./pages/kyc/Kyc.jsx";
 import WalletMangement from "./pages/wallet/WalletMangement.jsx";
+import AeroPayTransaction from "./pages/transacrions/aeropaytransaction/AeroPayTransaction.jsx";
+import CryptoTransaction from "./pages/transacrions/cryptotransactions/CryptoTransaction.jsx";
 
 function App() {
   return (
@@ -49,8 +51,8 @@ function App() {
           <Route path="/profile/edit" element={<EditProfile />} />
           <Route path="/kyc" element={<Kyc />} />
           <Route path="/wallet/mangement" element={<WalletMangement />} />
-
-          
+          <Route path="/card/list" element={<AeroPayTransaction />} />
+           <Route path="/cripto/transaction" element={<CryptoTransaction />} />
 
           <Route path="*" element={<Error404 />} />
         </Routes>
