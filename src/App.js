@@ -24,6 +24,8 @@ import Kyc from "./pages/kyc/Kyc.jsx";
 import WalletMangement from "./pages/wallet/WalletMangement.jsx";
 import AeroPayTransaction from "./pages/transacrions/aeropaytransaction/AeroPayTransaction.jsx";
 import CryptoTransaction from "./pages/transacrions/cryptotransactions/CryptoTransaction.jsx";
+import BankAccountList from "./pages/bank/BankAccountList.jsx";
+import WalletTopup from "./pages/wallet/WalletTopup.jsx";
 
 function App() {
   return (
@@ -52,7 +54,9 @@ function App() {
           <Route path="/kyc" element={<Kyc />} />
           <Route path="/wallet/mangement" element={<WalletMangement />} />
           <Route path="/card/list" element={<AeroPayTransaction />} />
-           <Route path="/cripto/transaction" element={<CryptoTransaction />} />
+          <Route path="/cripto/transaction" element={<CryptoTransaction />} />
+          <Route path="/bank-accounts" element={<BankAccountList />} />
+          <Route path="/wallet-topup/transaction" element={<WalletTopup />} />
 
           <Route path="*" element={<Error404 />} />
         </Routes>

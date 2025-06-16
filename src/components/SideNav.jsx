@@ -3,6 +3,8 @@ import React, { useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import i1 from "../assets/logo/logo.png";
 import Cookies from "js-cookie";
+import WalletRoundedIcon from "@mui/icons-material/WalletRounded";
+import { color } from "highcharts";
 
 const SideNav = () => {
   const navigate = useNavigate();
@@ -110,14 +112,14 @@ const SideNav = () => {
                 <i className="ai-list fs-5 opacity-60 me-2"></i>
                 Moneyart Bill Transaction
               </Link>
-               <Link
+              <Link
                 className={`nav-link fw-semibold py-2 px-0 ${
                   isActive("/card/transaction") ? "active" : ""
                 }`}
                 to="/card/list"
               >
                 <i className="ai-card fs-5 opacity-60 me-2"></i>
-               Aeropay Card List
+                Aeropay Card List
               </Link>
               <Link
                 className={`nav-link fw-semibold py-2 px-0 ${
@@ -128,14 +130,34 @@ const SideNav = () => {
                 <i className="ai-mobile fs-5 opacity-60 me-2"></i>
                 Mobile Recharge Transaction
               </Link>
-               <Link
+              <Link
                 className={`nav-link fw-semibold py-2 px-0 ${
                   isActive("/cripto/transaction") ? "active" : ""
                 }`}
                 to="/cripto/transaction"
               >
                 <i className="ai-shuffle fs-5 opacity-60 me-2"></i>
-               Crypto Transaction
+                Crypto Transaction
+              </Link>
+              <Link
+                className={`nav-link fw-semibold py-2 px-0 ${
+                  isActive("/bank-accounts") ? "active" : ""
+                }`}
+                to="/bank-accounts"
+              >
+                <i className="ai-note fs-5 opacity-60 me-2"></i>
+                Bank Account List
+              </Link>
+              <Link
+                className={`nav-link fw-semibold py-2 px-0 ${
+                  isActive("/wallet-topup/transaction") ? "active" : ""
+                }`}
+                to="/wallet-topup/transaction"
+              >
+                <WalletRoundedIcon className="me-2"
+                  sx={isActive("/wallet-topup/transaction") ? "" : { color: "#91969f" }}
+                />
+                Wallet Topup Transaction
               </Link>
               <Link
                 className={`nav-link fw-semibold py-2 px-0 ${
