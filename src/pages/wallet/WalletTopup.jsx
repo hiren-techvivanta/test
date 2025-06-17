@@ -255,16 +255,19 @@ const WalletTopup = () => {
                                 <td>{txn?.user_email}</td>
                                 <td>{txn.currency}</td>
                                 <td>{txn.amount}</td>
-                                <td
-                                  className={
-                                    txn.status === "completed"
-                                      ? "text-success"
-                                      : txn.status === "initiated"
-                                      ? "text-warning"
-                                      : ""
-                                  }
-                                >
-                                  {txn.status}
+                                <td>
+                                  <span
+                                    className={
+                                      txn.status === "completed"
+                                        ? "badge bg-success"
+                                        : txn.status === "initiated"
+                                        ? "badge bg-warning"
+                                        : "badge bg-danger"
+                                    }
+                                  >
+                                    {" "}
+                                    {txn.status}
+                                  </span>
                                 </td>
                                 <td>
                                   {dayjs(txn.created_at).format(

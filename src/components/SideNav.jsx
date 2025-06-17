@@ -55,7 +55,7 @@ const SideNav = () => {
 
             <nav className="nav flex-column pb-2 pb-lg-4 mb-1">
               <h4 className="fs-xs fw-medium text-body-secondary text-uppercase pb-1 mb-2">
-                Dashboard
+                Pages
               </h4>
               <Link
                 className={`nav-link fw-semibold py-2 px-0 ${
@@ -154,9 +154,9 @@ const SideNav = () => {
                 }`}
                 to="/wallet-topup/transaction"
               >
-                <WalletRoundedIcon className="me-2"
+              <i>  <WalletRoundedIcon className="me-2"
                   sx={isActive("/wallet-topup/transaction") ? "" : { color: "#91969f" }}
-                />
+                /></i>
                 Wallet Topup
               </Link>
               <Link
