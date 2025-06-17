@@ -18,6 +18,7 @@ import {
   TableBody,
   Tooltip,
   IconButton,
+  DialogContentText,
 } from "@mui/material";
 import { toast } from "react-toastify";
 import axios from "axios";
@@ -43,6 +44,9 @@ const MobileRechargeTransaction = () => {
   const [resetTrigger, setResetTrigger] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [open, setOpen] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [mobileError, setMobileError] = useState("");
+  const [dateError, setDateError] = useState("");
 
   const token = Cookies.get("authToken");
 
@@ -93,9 +97,41 @@ const MobileRechargeTransaction = () => {
     getData(page);
   };
 
+  const validateForm = () => {
+    let isValid = true;
+
+    // Email validation
+    if (email && !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
+      setEmailError("Invalid email address");
+      isValid = false;
+    } else {
+      setEmailError("");
+    }
+
+    // Mobile validation
+    if (mobile && !/^\d{10}$/.test(mobile)) {
+      setMobileError("Mobile must be 10 digits");
+      isValid = false;
+    } else {
+      setMobileError("");
+    }
+
+    // Date validation
+    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+      setDateError("End date must be after start date");
+      isValid = false;
+    } else {
+      setDateError("");
+    }
+
+    return isValid;
+  };
+
   const handleFilterSubmit = (e) => {
     e.preventDefault();
-    getData(1);
+    if (validateForm()) {
+      getData(1);
+    }
   };
 
   const resetFilters = () => {
@@ -103,6 +139,9 @@ const MobileRechargeTransaction = () => {
     setMobile("");
     setStartDate("");
     setEndDate("");
+    setEmailError("");
+    setMobileError("");
+    setDateError("");
     setResetTrigger(true);
   };
 
@@ -127,123 +166,168 @@ const MobileRechargeTransaction = () => {
     setSelectedTransaction(null);
   };
 
+  // Format key for display in modal
+  const formatKey = (key) => {
+    return key
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
+  // Get custom no data message
+  const getNoDataMessage = () => {
+    if (!email && !mobile && !startDate && !endDate) {
+      return "No transactions found";
+    }
+
+    let message = "No transactions found";
+    const filters = [];
+
+    if (email) filters.push(`email: ${email}`);
+    if (mobile) filters.push(`mobile: ${mobile}`);
+    if (startDate)
+      filters.push(`from ${dayjs(startDate).format("DD/MM/YYYY")}`);
+    if (endDate) filters.push(`to ${dayjs(endDate).format("DD/MM/YYYY")}`);
+
+    if (filters.length > 0) {
+      message += ` with ${filters.join(" and ")}`;
+    }
+
+    return message;
+  };
+
   return (
     <>
-      {loading === true ? (
-        <>
-          <Loader />
-        </>
+      {loading ? (
+        <Loader />
       ) : (
-        <>
-          <div className="container py-5 mb-lg-4">
-            <div className="row pt-sm-2 pt-lg-0">
-              <SideNav />
+        <div className="container py-5 mb-lg-4">
+          <div className="row pt-sm-2 pt-lg-0">
+            <SideNav />
 
-              <div className="col-lg-9 pt-4 pb-2 pb-sm-4">
-                <div className="d-sm-flex align-items-center mb-4">
-                  <h1 className="h2 mb-4 mb-sm-0 me-4">
-                    Mobile Recharge Transaction
-                  </h1>
+            <div className="col-lg-9 pt-4 pb-2 pb-sm-4">
+              <div className="d-sm-flex align-items-center mb-4">
+                <h1 className="h2 mb-4 mb-sm-0 me-4">
+                  Mobile Recharge Transaction
+                </h1>
+              </div>
+
+              <div className="card shadow border-0">
+                <div className="card-body">
+                  <form onSubmit={handleFilterSubmit}>
+                    <div className="row g-3 mb-4">
+                      <div className="col-md-3">
+                        <TextField
+                          label="Email"
+                          value={email}
+                          onChange={(e) => {
+                            setEmail(e.target.value);
+                            if (emailError) setEmailError("");
+                          }}
+                          error={!!emailError}
+                          helperText={emailError}
+                          fullWidth
+                          size="small"
+                        />
+                      </div>
+                      <div className="col-md-3">
+                        <TextField
+                          label="Mobile Number"
+                          value={mobile}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Only allow numbers and limit to 10 digits
+                            if (value === "" || /^\d{0,10}$/.test(value)) {
+                              setMobile(value);
+                              if (mobileError) setMobileError("");
+                            }
+                          }}
+                          error={!!mobileError}
+                          helperText={mobileError}
+                          fullWidth
+                          size="small"
+                          inputProps={{ maxLength: 10 }}
+                        />
+                      </div>
+                      <div className="col-md-3">
+                        <TextField
+                          label="Start Date"
+                          type="date"
+                          InputLabelProps={{ shrink: true }}
+                          value={startDate}
+                          onChange={(e) => {
+                            setStartDate(e.target.value);
+                            if (dateError) setDateError("");
+                          }}
+                          fullWidth
+                          size="small"
+                        />
+                      </div>
+                      <div className="col-md-3">
+                        <TextField
+                          label="End Date"
+                          type="date"
+                          InputLabelProps={{ shrink: true }}
+                          value={endDate}
+                          onChange={(e) => {
+                            setEndDate(e.target.value);
+                            if (dateError) setDateError("");
+                          }}
+                          error={!!dateError}
+                          helperText={dateError}
+                          fullWidth
+                          size="small"
+                        />
+                      </div>
+                      <div className="col-md-2 d-flex align-items-end">
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          type="submit"
+                          fullWidth
+                        >
+                          Apply
+                        </Button>
+                      </div>
+                      <div className="col-md-2 d-flex align-items-end">
+                        <Button
+                          variant="outlined"
+                          color="light"
+                          onClick={resetFilters}
+                          fullWidth
+                        >
+                          Reset
+                        </Button>
+                      </div>
+                    </div>
+                  </form>
                 </div>
+              </div>
 
-                <form onSubmit={handleFilterSubmit}>
-                  <div className="row g-3 mb-4">
-                    <div className="col-md-3">
-                      <TextField
-                        label="Email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        fullWidth
-                        size="small"
-                      />
-                    </div>
-                    <div className="col-md-3">
-                      <TextField
-                        label="Mobile Number"
-                        value={mobile}
-                        onChange={(e) => setMobile(e.target.value)}
-                        fullWidth
-                        size="small"
-                      />
-                    </div>
-                    <div className="col-md-3">
-                      <TextField
-                        label="Start Date"
-                        type="date"
-                        InputLabelProps={{ shrink: true }}
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        fullWidth
-                        size="small"
-                      />
-                    </div>
-                    <div className="col-md-3">
-                      <TextField
-                        label="End Date"
-                        type="date"
-                        InputLabelProps={{ shrink: true }}
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        fullWidth
-                        size="small"
-                      />
-                    </div>
-                    <div className="col-md-2 d-flex align-items-end">
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        type="submit"
-                        fullWidth
-                      >
-                        Apply
-                      </Button>
-                    </div>
-                    <div className="col-md-2 d-flex align-items-end">
-                      <Button
-                        variant="outlined"
-                        color="light"
-                        onClick={resetFilters}
-                        fullWidth
-                      >
-                        Reset
-                      </Button>
-                    </div>
-                  </div>
-                </form>
-
-                {/* Table */}
-                <div className="card shadow border-0">
-                  <div className="card-body">
-                    <div className="overflow-auto">
-                      <table className="table table-striped">
-                        <thead>
-                          <tr>
-                            <th>#</th>
-                            <th>Date & Time</th>
-                            <th>Operator Code</th>
-                            <th>User Name</th>
-                            <th>Email</th>
-                            <th>Mobile No.</th>
-                            <th>Status</th>
-                            <th>Amount</th>
-                            <th>Action</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {loading ? (
+              {/* Table */}
+              <div className="card shadow border-0 mt-3">
+                <div className="card-body">
+                  <div className="overflow-auto">
+                    {transactions.length === 0 ? (
+                      <h6 className="text-center"> {getNoDataMessage()}</h6>
+                    ) : (
+                      <>
+                        <table className="table">
+                          <thead>
                             <tr>
-                              <td colSpan="9" align="center">
-                                Loading...
-                              </td>
+                              <th>#</th>
+                              <th>Date & Time</th>
+                              <th>Operator Code</th>
+                              <th>User Name</th>
+                              <th>Email</th>
+                              <th>Mobile No.</th>
+                              <th>Status</th>
+                              <th>Amount</th>
+                              <th>Action</th>
                             </tr>
-                          ) : transactions.length === 0 ? (
-                            <tr>
-                              <td colSpan="9" align="center">
-                                No data found
-                              </td>
-                            </tr>
-                          ) : (
-                            transactions.map((v, i) => (
+                          </thead>
+                          <tbody>
+                            {transactions.map((v, i) => (
                               <tr key={i}>
                                 <td>
                                   {(pagination.current_page - 1) *
@@ -257,9 +341,9 @@ const MobileRechargeTransaction = () => {
                                   )}
                                 </td>
                                 <td>{v.operator_code}</td>
-                                <td>{v.user_details?.full_name}</td>
-                                <td>{v.user_details?.email}</td>
-                                <td>{v.user_details?.phone_number}</td>
+                                <td>{v.user_details?.full_name || "N/A"}</td>
+                                <td>{v.user_details?.email || "N/A"}</td>
+                                <td>{v.user_details?.phone_number || "N/A"}</td>
                                 <td>
                                   <span
                                     className={`badge bg-${
@@ -283,135 +367,190 @@ const MobileRechargeTransaction = () => {
                                   </Tooltip>
                                 </td>
                               </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
+                            ))}
+                          </tbody>
+                        </table>
 
-                      {/* Pagination */}
-                      <div className="container-fluid mt-3">
-                        <div className="row">
-                          <div className="col-3">
-                            <FormControl variant="standard" fullWidth>
-                              <InputLabel>Results</InputLabel>
-                              <Select
-                                value={resultsPerPage}
-                                onChange={handleChange}
-                              >
-                                <MenuItem value={10}>10</MenuItem>
-                                <MenuItem value={25}>25</MenuItem>
-                                <MenuItem value={50}>50</MenuItem>
-                                <MenuItem value={100}>100</MenuItem>
-                              </Select>
-                            </FormControl>
-                          </div>
-                          <div className="col-9 d-flex justify-content-end">
-                            <Pagination
-                              count={pagination.total_pages}
-                              page={pagination.current_page}
-                              onChange={handlePageChange}
-                              color="primary"
-                              showFirstButton
-                              showLastButton
-                            />
+                        {/* Pagination */}
+                        <div className="container-fluid mt-3">
+                          <div className="row">
+                            <div className="col-3">
+                              <FormControl variant="standard" fullWidth>
+                                <InputLabel>Results</InputLabel>
+                                <Select
+                                  value={resultsPerPage}
+                                  onChange={handleChange}
+                                >
+                                  <MenuItem value={10}>10</MenuItem>
+                                  <MenuItem value={25}>25</MenuItem>
+                                  <MenuItem value={50}>50</MenuItem>
+                                  <MenuItem value={100}>100</MenuItem>
+                                </Select>
+                              </FormControl>
+                            </div>
+                            <div className="col-9 d-flex justify-content-end">
+                              <Pagination
+                                count={pagination.total_pages}
+                                page={pagination.current_page}
+                                onChange={handlePageChange}
+                                color="primary"
+                                showFirstButton
+                                showLastButton
+                                disabled={transactions.length === 0}
+                              />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
+                      </>
+                    )}
                   </div>
                 </div>
-
-                {/* Modal */}
-                <Dialog
-                  open={open}
-                  onClose={handleCloseModal}
-                  maxWidth="md"
-                  fullWidth
-                >
-                  <DialogTitle>Transaction Details</DialogTitle>
-                  <DialogContent
-                    style={{ maxHeight: "70vh", overflow: "auto" }}
-                  >
-                    {selectedTransaction && (
-                      <Table>
-                        <TableBody>
-                          <TableRow>
-                            <TableCell>
-                              <strong>User Name</strong>
-                            </TableCell>
-                            <TableCell>
-                              {selectedTransaction.user_details.full_name}
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>
-                              <strong>Email</strong>
-                            </TableCell>
-                            <TableCell>
-                              {selectedTransaction.user_details.email}
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>
-                              <strong>Mobile</strong>
-                            </TableCell>
-                            <TableCell>
-                              {selectedTransaction.user_details.phone_number}
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>
-                              <strong>Amount</strong>
-                            </TableCell>
-                            <TableCell>{selectedTransaction.amount}</TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>
-                              <strong>Order ID</strong>
-                            </TableCell>
-                            <TableCell>
-                              {selectedTransaction.order_id}
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>
-                              <strong>UTR</strong>
-                            </TableCell>
-                            <TableCell>{selectedTransaction.utr}</TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>
-                              <strong>Recharge Type</strong>
-                            </TableCell>
-                            <TableCell>
-                              {selectedTransaction.recharge_type}
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>
-                              <strong>Status</strong>
-                            </TableCell>
-                            <TableCell>{selectedTransaction.status}</TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>
-                              <strong>Date & Time</strong>
-                            </TableCell>
-                            <TableCell>
-                              {dayjs(selectedTransaction.created_at).format(
-                                "DD/MM/YYYY hh:mm A"
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        </TableBody>
-                      </Table>
-                    )}
-                  </DialogContent>
-                </Dialog>
               </div>
+
+              {/* Modal */}
+              <Dialog
+                open={open}
+                onClose={handleCloseModal}
+                maxWidth="md"
+                fullWidth
+              >
+                <DialogTitle>Transaction Details</DialogTitle>
+                <DialogContent style={{ maxHeight: "70vh", overflow: "auto" }}>
+                  {selectedTransaction ? (
+                    <Table>
+                      <TableBody>
+                        {/* User Details */}
+                        {selectedTransaction.user_details && (
+                          <>
+                            <TableRow>
+                              <TableCell>
+                                <strong>User Name</strong>
+                              </TableCell>
+                              <TableCell>
+                                {selectedTransaction.user_details.full_name ||
+                                  "N/A"}
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell>
+                                <strong>Email</strong>
+                              </TableCell>
+                              <TableCell>
+                                {selectedTransaction.user_details.email ||
+                                  "N/A"}
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell>
+                                <strong>Mobile</strong>
+                              </TableCell>
+                              <TableCell>
+                                {selectedTransaction.user_details
+                                  .phone_number || "N/A"}
+                              </TableCell>
+                            </TableRow>
+                          </>
+                        )}
+
+                        {/* Transaction Details */}
+                        <TableRow>
+                          <TableCell>
+                            <strong>Amount</strong>
+                          </TableCell>
+                          <TableCell>
+                            {selectedTransaction.amount || "N/A"}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>
+                            <strong>Order ID</strong>
+                          </TableCell>
+                          <TableCell>
+                            {selectedTransaction.order_id || "N/A"}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>
+                            <strong>UTR</strong>
+                          </TableCell>
+                          <TableCell>
+                            {selectedTransaction.utr || "N/A"}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>
+                            <strong>Operator Code</strong>
+                          </TableCell>
+                          <TableCell>
+                            {selectedTransaction.operator_code || "N/A"}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>
+                            <strong>Recharge Type</strong>
+                          </TableCell>
+                          <TableCell>
+                            {selectedTransaction.recharge_type || "N/A"}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>
+                            <strong>Status</strong>
+                          </TableCell>
+                          <TableCell>
+                            {selectedTransaction.status || "N/A"}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>
+                            <strong>Date & Time</strong>
+                          </TableCell>
+                          <TableCell>
+                            {dayjs(selectedTransaction.created_at).format(
+                              "DD/MM/YYYY hh:mm A"
+                            )}
+                          </TableCell>
+                        </TableRow>
+
+                        {/* Additional Fields */}
+                        {Object.entries(selectedTransaction)
+                          .filter(
+                            ([key]) =>
+                              ![
+                                "user_details",
+                                "amount",
+                                "order_id",
+                                "utr",
+                                "operator_code",
+                                "recharge_type",
+                                "status",
+                                "created_at",
+                              ].includes(key)
+                          )
+                          .map(([key, value]) => (
+                            <TableRow key={key}>
+                              <TableCell>
+                                <strong>{formatKey(key)}</strong>
+                              </TableCell>
+                              <TableCell>
+                                {typeof value === "object"
+                                  ? JSON.stringify(value, null, 2)
+                                  : value}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <DialogContentText>
+                      No transaction details available
+                    </DialogContentText>
+                  )}
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
-        </>
+        </div>
       )}
     </>
   );
