@@ -114,7 +114,7 @@ const SideNav = () => {
               </Link>
               <Link
                 className={`nav-link fw-semibold py-2 px-0 ${
-                  isActive("/card/transaction") ? "active" : ""
+                  isActive("/card/list") ? "active" : ""
                 }`}
                 to="/card/list"
               >
@@ -157,7 +157,7 @@ const SideNav = () => {
                 <WalletRoundedIcon className="me-2"
                   sx={isActive("/wallet-topup/transaction") ? "" : { color: "#91969f" }}
                 />
-                Wallet Topup Transaction
+                Wallet Topup
               </Link>
               <Link
                 className={`nav-link fw-semibold py-2 px-0 ${
