@@ -241,13 +241,22 @@ const BankAccountList = () => {
                         />
                       </div>
                       <div className="col-md-3">
-                        <TextField
-                          label="Currency"
-                          value={currency}
-                          onChange={(e) => setcurrency(e.target.value)}
-                          fullWidth
-                          size="small"
-                        />
+                        <FormControl fullWidth size="small">
+                          <InputLabel id="currency-label">Currency</InputLabel>
+                          <Select
+                            labelId="currency-label"
+                            id="currency-select"
+                            value={currency}
+                            label="Currency"
+                            onChange={(e) => setcurrency(e.target.value)}
+                          >
+                            <MenuItem value="">All Currencies</MenuItem>
+                            <MenuItem value="AED">AED</MenuItem>
+                            <MenuItem value="USD">USD</MenuItem>
+                            <MenuItem value="GBP">GBP</MenuItem>
+                            <MenuItem value="EUR">EUR</MenuItem>
+                          </Select>
+                        </FormControl>
                       </div>
                       <div className="col-md-2 d-flex align-items-end">
                         <Button
