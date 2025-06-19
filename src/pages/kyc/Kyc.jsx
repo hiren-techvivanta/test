@@ -36,19 +36,19 @@ const Kyc = () => {
     has_next: false,
     has_previous: false,
     next_page: null,
-    previous_page: null
+    previous_page: null,
   });
-  
+
   // Filter states
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  
+
   // Error states
   const [emailError, setEmailError] = useState("");
   const [dateError, setDateError] = useState("");
-  
+
   // Reset trigger
   const [resetTrigger, setResetTrigger] = useState(0);
 
@@ -56,7 +56,7 @@ const Kyc = () => {
   const config = { headers: { Authorization: `Bearer ${token}` } };
 
   // Date constraints
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split("T")[0];
   const minDate = "2025-01-01";
 
   useEffect(() => {
@@ -75,18 +75,18 @@ const Kyc = () => {
 
   const handlePageSizeChange = (event) => {
     const newSize = event.target.value;
-    setPagination(prev => ({ ...prev, page_size: newSize }));
+    setPagination((prev) => ({ ...prev, page_size: newSize }));
     getData(pagination.current_page, newSize);
   };
 
   const handlePageChange = (event, page) => {
-    setPagination(prev => ({ ...prev, current_page: page }));
+    setPagination((prev) => ({ ...prev, current_page: page }));
     getData(page);
   };
 
   const validateFilters = () => {
     let isValid = true;
-    
+
     // Email validation
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setEmailError("Invalid email format");
@@ -94,44 +94,40 @@ const Kyc = () => {
     } else {
       setEmailError("");
     }
-    
+
     // Date validation
     if (startDate || endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
       const todayDate = new Date();
       const minAllowedDate = new Date(minDate);
-      
+
       if (startDate && start > todayDate) {
         setDateError("Start date cannot be in the future");
         isValid = false;
-      } 
-      else if (endDate && end > todayDate) {
+      } else if (endDate && end > todayDate) {
         setDateError("End date cannot be in the future");
         isValid = false;
-      }
-      else if (startDate && endDate && start > end) {
+      } else if (startDate && endDate && start > end) {
         setDateError("End date cannot be before start date");
         isValid = false;
-      } 
-      else if (startDate && start < minAllowedDate) {
+      } else if (startDate && start < minAllowedDate) {
         setDateError(`Start date must be after ${minDate}`);
         isValid = false;
-      }
-      else {
+      } else {
         setDateError("");
       }
     }
-    
+
     return isValid;
   };
 
   const handleFilterSubmit = (e) => {
     e.preventDefault();
-    
+
     if (validateFilters()) {
       // Reset to first page when applying new filters
-      setPagination(prev => ({ ...prev, current_page: 1 }));
+      setPagination((prev) => ({ ...prev, current_page: 1 }));
       getData(1);
     }
   };
@@ -143,18 +139,21 @@ const Kyc = () => {
     setEndDate("");
     setEmailError("");
     setDateError("");
-    
+
     // Reset pagination to first page
-    setPagination(prev => ({
+    setPagination((prev) => ({
       ...prev,
-      current_page: 1
+      current_page: 1,
     }));
-    
+
     // Trigger reset effect
-    setResetTrigger(prev => prev + 1);
+    setResetTrigger((prev) => prev + 1);
   };
 
-  const getData = async (page = pagination.current_page, pageSize = pagination.page_size) => {
+  const getData = async (
+    page = pagination.current_page,
+    pageSize = pagination.page_size
+  ) => {
     setLoading(true);
     try {
       const params = {
@@ -163,22 +162,22 @@ const Kyc = () => {
         ...(email && { email }),
         ...(status && { status }),
         ...(startDate && { start_date: startDate }),
-        ...(endDate && { end_date: endDate })
+        ...(endDate && { end_date: endDate }),
       };
 
       const { data } = await axios.get(
         `${process.env.REACT_APP_BACKEND_URL}/api/auth/admin/kyc`,
         {
           ...config,
-          params
+          params,
         }
       );
 
       if (data.message === "KYC submissions retrieved successfully") {
         setKycSubmissions(data.data.kyc_submissions);
-        setPagination(prev => ({
+        setPagination((prev) => ({
           ...prev,
-          ...data.data.pagination
+          ...data.data.pagination,
         }));
         setLoading(false);
       }
@@ -195,18 +194,46 @@ const Kyc = () => {
   };
 
   // Modal component
+
   function MyVerticallyCenteredModal(props) {
+
     const [message, setMessage] = useState("");
     const [filterData, setFilterData] = useState({});
+    const [messageErr, setMessageErr] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const validation = () => {
+      setMessageErr("");
+      const pattern = /^[a-zA-Z0-9 ,.'"-]+$/;
+
+      if (!message.trim()) {
+        setMessageErr("Message is required");
+        return false;
+      } else if (!pattern.test(message.trim())) {
+        setMessageErr(
+          "Message should contain only letters, numbers, spaces, and basic punctuation (, . ' \" -)"
+        );
+        return false;
+      }
+
+      return true;
+    };
 
     const handleSubmit = async (e, status) => {
       e.preventDefault();
+
+      if (!validation()) {
+        return ;
+      }
+
+      setLoading(true);
 
       try {
         const formData = {
           status,
           admin_message: message,
         };
+
         const { data } = await axios.patch(
           `${process.env.REACT_APP_BACKEND_URL}/api/auth/admin/kyc/${id}/update-status/`,
           formData,
@@ -220,7 +247,9 @@ const Kyc = () => {
           setModalShow(false);
         }
       } catch (e) {
-        toast.error(e.response.data.message || "Internal server error");
+        toast.error(e.response?.data?.message || "Internal server error");
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -230,6 +259,9 @@ const Kyc = () => {
         setFilterData(filteredData[0]);
       }
     }, [modalShow, id, kycSubmissions]);
+
+    console.log(messageErr);
+    
 
     return (
       <Modal
@@ -252,9 +284,7 @@ const Kyc = () => {
                     <tbody>
                       <tr>
                         <th>Name</th>
-                        <td>{`${
-                          filterData?.user_details?.full_name || "N/A"
-                        }`}</td>
+                        <td>{filterData?.user_details?.full_name || "N/A"}</td>
                       </tr>
                       <tr>
                         <th>Email</th>
@@ -292,6 +322,7 @@ const Kyc = () => {
                   </table>
                 </div>
               </div>
+
               <div className="col-12">
                 {filterData?.document_image && (
                   <img
@@ -301,15 +332,14 @@ const Kyc = () => {
                   />
                 )}
               </div>
-              {filterData.document_back && (
+
+              {filterData?.document_back && (
                 <div className="col-12">
-                  {filterData?.document_image && (
-                    <img
-                      src={`https://uatwavemoney.onewave.app${filterData.document_back}`}
-                      className="img-fluid"
-                      alt="Document"
-                    />
-                  )}
+                  <img
+                    src={`https://uatwavemoney.onewave.app${filterData.document_back}`}
+                    className="img-fluid mt-2"
+                    alt="Document Back"
+                  />
                 </div>
               )}
 
@@ -321,6 +351,7 @@ const Kyc = () => {
                   </p>
                 )}
               </div>
+
               <div className="col-12">
                 {filterData?.status === "Pending" && (
                   <form>
@@ -329,22 +360,47 @@ const Kyc = () => {
                         <label className="form-label">Message</label>
                         <input
                           type="text"
-                          className="form-control"
+                          className={`form-control ${
+                            messageErr ? "is-invalid" : ""
+                          }`}
+                          placeholder="Enter Your Message"
+                          value={message}
                           onChange={(e) => setMessage(e.target.value)}
                         />
+                        {messageErr && (
+                          <div className="invalid-feedback">{messageErr}</div>
+                        )}
                       </div>
                       <div className="col-12 d-flex justify-content-around">
                         <button
                           className="btn btn-success"
                           onClick={(e) => handleSubmit(e, "Approved")}
+                          disabled={loading}
                         >
-                          <AddRoundedIcon /> Approve
+                          {loading ? (
+                            <span
+                              className="spinner-border spinner-border-sm me-2"
+                              role="status"
+                            />
+                          ) : (
+                            <AddRoundedIcon className="me-1" />
+                          )}
+                          Approve
                         </button>
                         <button
                           className="btn btn-danger"
                           onClick={(e) => handleSubmit(e, "Rejected")}
+                          disabled={loading}
                         >
-                          <CloseRoundedIcon /> Reject
+                          {loading ? (
+                            <span
+                              className="spinner-border spinner-border-sm me-2"
+                              role="status"
+                            />
+                          ) : (
+                            <CloseRoundedIcon className="me-1" />
+                          )}
+                          Reject
                         </button>
                       </div>
                     </div>
@@ -390,7 +446,7 @@ const Kyc = () => {
                             size="small"
                           />
                         </div>
-                        
+
                         {/* Status Filter */}
                         <div className="col-md-3">
                           <FormControl fullWidth size="small">
@@ -407,7 +463,7 @@ const Kyc = () => {
                             </Select>
                           </FormControl>
                         </div>
-                        
+
                         {/* Start Date Filter */}
                         <div className="col-md-3">
                           <TextField
@@ -418,13 +474,13 @@ const Kyc = () => {
                             onChange={(e) => setStartDate(e.target.value)}
                             fullWidth
                             size="small"
-                            inputProps={{ 
-                              min: minDate, 
-                              max: today 
+                            inputProps={{
+                              min: minDate,
+                              max: today,
                             }}
                           />
                         </div>
-                        
+
                         {/* End Date Filter */}
                         <div className="col-md-3">
                           <TextField
@@ -437,14 +493,14 @@ const Kyc = () => {
                             helperText={dateError}
                             fullWidth
                             size="small"
-                            inputProps={{ 
-                              min: startDate || minDate, 
-                              max: today 
+                            inputProps={{
+                              min: startDate || minDate,
+                              max: today,
                             }}
                             disabled={!startDate}
                           />
                         </div>
-                        
+
                         {/* Action Buttons */}
                         <div className="col-md-2 d-flex align-items-end">
                           <Button
@@ -495,10 +551,22 @@ const Kyc = () => {
                                 <tbody>
                                   {kycSubmissions.map((val, index) => (
                                     <tr key={val.id}>
-                                      <td>{index + 1 + (pagination.current_page - 1) * pagination.page_size}</td>
-                                      <td>{val.user_details?.full_name || 'N/A'}</td>
-                                      <td>{val.user_details?.email || 'N/A'}</td>
-                                      <td>{val.user_details?.phone_number || 'N/A'}</td>
+                                      <td>
+                                        {index +
+                                          1 +
+                                          (pagination.current_page - 1) *
+                                            pagination.page_size}
+                                      </td>
+                                      <td>
+                                        {val.user_details?.full_name || "N/A"}
+                                      </td>
+                                      <td>
+                                        {val.user_details?.email || "N/A"}
+                                      </td>
+                                      <td>
+                                        {val.user_details?.phone_number ||
+                                          "N/A"}
+                                      </td>
                                       <td>
                                         <span
                                           className={

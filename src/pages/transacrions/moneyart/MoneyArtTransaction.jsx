@@ -217,7 +217,7 @@ const MoneyArtTransaction = () => {
             <div className="col-lg-9 pt-4 pb-2 pb-sm-4">
               <div className="d-sm-flex align-items-center mb-4">
                 <h1 className="h2 mb-4 mb-sm-0 me-4">
-                  Moneyart Transaction List
+                  Moneyart Bill Transaction List
                 </h1>
               </div>
 

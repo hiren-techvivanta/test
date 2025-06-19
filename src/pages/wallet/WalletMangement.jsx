@@ -74,7 +74,7 @@ const WalletMangement = () => {
 
     const actionType = type === "add" ? "Add" : "Reduce";
     const confirmed = window.confirm(
-      `Are you sure you want to ${actionType.toLowerCase()} $${amountNum.toFixed(2)}?`
+      `Are you sure you want to ${actionType.toLowerCase()} $${amountNum.toFixed(2)} ?`
     );
     if (!confirmed) return;
 
@@ -191,9 +191,6 @@ const WalletMangement = () => {
                           step="0.01"
                         />
                       </div>
-                      <small className="text-muted">
-                        Max 8 digits, 2 decimal places
-                      </small>
                     </div>
                     <div className="col-md-6 d-flex gap-2 mt-3 mt-md-0">
                       <button
