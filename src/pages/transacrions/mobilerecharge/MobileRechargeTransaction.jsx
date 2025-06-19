@@ -49,6 +49,10 @@ const MobileRechargeTransaction = () => {
   const [dateError, setDateError] = useState("");
 
   const token = Cookies.get("authToken");
+  
+  // Date validation parameters
+  const MIN_DATE = "2025-01-01";
+  const today = dayjs().format("YYYY-MM-DD");
 
   const getData = async (page = 1, pageSize = resultsPerPage) => {
     try {
@@ -99,6 +103,9 @@ const MobileRechargeTransaction = () => {
 
   const validateForm = () => {
     let isValid = true;
+    let dateErrorMsg = "";
+    const todayObj = dayjs().startOf('day');
+    const minDateObj = dayjs(MIN_DATE);
 
     // Email validation
     if (email && !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
@@ -117,8 +124,34 @@ const MobileRechargeTransaction = () => {
     }
 
     // Date validation
-    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
-      setDateError("End date must be after start date");
+    if (startDate) {
+      const start = dayjs(startDate);
+      
+      if (start.isBefore(minDateObj)) {
+        dateErrorMsg = "Start date cannot be before 2025-01-01";
+      } else if (start.isAfter(todayObj)) {
+        dateErrorMsg = "Start date cannot be in the future";
+      }
+    }
+
+    if (endDate && !dateErrorMsg) {
+      const end = dayjs(endDate);
+      
+      if (end.isBefore(minDateObj)) {
+        dateErrorMsg = "End date cannot be before 2025-01-01";
+      } else if (end.isAfter(todayObj)) {
+        dateErrorMsg = "End date cannot be in the future";
+      }
+    }
+
+    if (startDate && endDate && !dateErrorMsg) {
+      if (dayjs(startDate).isAfter(dayjs(endDate))) {
+        dateErrorMsg = "End date must be after start date";
+      }
+    }
+
+    if (dateErrorMsg) {
+      setDateError(dateErrorMsg);
       isValid = false;
     } else {
       setDateError("");
@@ -259,6 +292,10 @@ const MobileRechargeTransaction = () => {
                             setStartDate(e.target.value);
                             if (dateError) setDateError("");
                           }}
+                          inputProps={{ 
+                            min: MIN_DATE,
+                            max: today
+                          }}
                           fullWidth
                           size="small"
                         />
@@ -272,6 +309,10 @@ const MobileRechargeTransaction = () => {
                           onChange={(e) => {
                             setEndDate(e.target.value);
                             if (dateError) setDateError("");
+                          }}
+                          inputProps={{ 
+                            min: MIN_DATE,
+                            max: today
                           }}
                           error={!!dateError}
                           helperText={dateError}
@@ -372,7 +413,7 @@ const MobileRechargeTransaction = () => {
                         </table>
 
                         {/* Pagination */}
-                        <div className="container-fluid mt-3">
+                        <div className="container-fluid mt-3 mb-3">
                           <div className="row">
                             <div className="col-3">
                               <FormControl variant="standard" fullWidth>

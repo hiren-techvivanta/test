@@ -22,6 +22,7 @@ root.render(
       pauseOnHover
       theme="colored"
       transition={Flip}
+      stacked
     />
   </>
 );

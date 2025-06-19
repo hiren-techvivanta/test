@@ -49,6 +49,12 @@ const MoneyArtTransaction = () => {
 
   const token = Cookies.get("authToken");
 
+  // Get today's date in YYYY-MM-DD format
+  const today = dayjs().format("YYYY-MM-DD");
+  
+  // Minimum allowed date (2025-01-01)
+  const minDate = "2025-01-01";
+
   const getData = async (page = 1, pageSize = resultsPerPage) => {
     setLoading(true);
     try {
@@ -132,6 +138,12 @@ const MoneyArtTransaction = () => {
     // Date validation
     if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
       setDateError("End date must be after start date");
+      isValid = false;
+    } else if (startDate && (new Date(startDate) < new Date(minDate) || new Date(startDate) > new Date(today))) {
+      setDateError(`Start date must be between ${dayjs(minDate).format("DD/MM/YYYY")} and today`);
+      isValid = false;
+    } else if (endDate && (new Date(endDate) < new Date(minDate) || new Date(endDate) > new Date(today))) {
+      setDateError(`End date must be between ${dayjs(minDate).format("DD/MM/YYYY")} and today`);
       isValid = false;
     } else {
       setDateError("");
@@ -258,6 +270,11 @@ const MoneyArtTransaction = () => {
                           }}
                           fullWidth
                           size="small"
+                          inputProps={{ 
+                            min: minDate, 
+                            max: today 
+                          }}
+                          helperText={``}
                         />
                       </div>
                       <div className="col-md-3">
@@ -274,6 +291,10 @@ const MoneyArtTransaction = () => {
                           helperText={dateError}
                           fullWidth
                           size="small"
+                          inputProps={{ 
+                            min: minDate, 
+                            max: today 
+                          }}
                         />
                       </div>
                       <div className="col-md-2 d-flex align-items-end">
@@ -346,7 +367,7 @@ const MoneyArtTransaction = () => {
                                     className={`badge bg-${
                                       txn.status === "success"
                                         ? "success"
-                                        : "warning"
+                                        : txn.status === "failed" ? "danger":"warning"
                                     }`}
                                   >
                                     {txn.status}
@@ -369,7 +390,7 @@ const MoneyArtTransaction = () => {
                           </tbody>
                         </table>
 
-                        <div className="container-fluid">
+                        <div className="container-fluid mb-3">
                           <div className="row">
                             <div className="col-3">
                               <FormControl variant="standard" fullWidth>

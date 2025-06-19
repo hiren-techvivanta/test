@@ -26,6 +26,10 @@ import dayjs from "dayjs";
 import Loader from "../../components/Loader";
 
 const WalletTopup = () => {
+  // Define min and max allowed dates
+  const minAllowedDate = "2025-01-01";
+  const maxAllowedDate = dayjs().format("YYYY-MM-DD");
+  
   const [resultsPerPage, setResultsPerPage] = useState(10);
   const [transactions, setTransactions] = useState([]);
   const [email, setEmail] = useState("");
@@ -41,7 +45,8 @@ const WalletTopup = () => {
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [resetTrigger, setResetTrigger] = useState(false);
   const [emailError, setEmailError] = useState("");
-  const [dateError, setDateError] = useState("");
+  const [startDateError, setStartDateError] = useState(""); // Split into separate errors
+  const [endDateError, setEndDateError] = useState(""); // Split into separate errors
 
   const token = Cookies.get("authToken");
 
@@ -109,20 +114,60 @@ const WalletTopup = () => {
   const validateForm = () => {
     let isValid = true;
 
+    // Reset errors
+    setEmailError("");
+    setStartDateError("");
+    setEndDateError("");
+
     // Email validation
     if (email && !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
       setEmailError("Invalid email address");
       isValid = false;
-    } else {
-      setEmailError("");
     }
 
-    // Date validation
-    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
-      setDateError("End date must be after start date");
-      isValid = false;
-    } else {
-      setDateError("");
+    // Start date validation
+    if (startDate) {
+      const start = dayjs(startDate);
+      const minDate = dayjs(minAllowedDate);
+      const maxDate = dayjs(maxAllowedDate);
+      
+      if (start.isBefore(minDate)) {
+        setStartDateError(`Date must be on or after ${minDate.format("DD/MM/YYYY")}`);
+        isValid = false;
+      }
+      
+      if (start.isAfter(maxDate)) {
+        setStartDateError("Future dates are not allowed");
+        isValid = false;
+      }
+    }
+
+    // End date validation
+    if (endDate) {
+      const end = dayjs(endDate);
+      const minDate = dayjs(minAllowedDate);
+      const maxDate = dayjs(maxAllowedDate);
+      
+      if (end.isBefore(minDate)) {
+        setEndDateError(`Date must be on or after ${minDate.format("DD/MM/YYYY")}`);
+        isValid = false;
+      }
+      
+      if (end.isAfter(maxDate)) {
+        setEndDateError("Future dates are not allowed");
+        isValid = false;
+      }
+    }
+
+    // Cross validation between dates
+    if (startDate && endDate) {
+      const start = dayjs(startDate);
+      const end = dayjs(endDate);
+      
+      if (end.isBefore(start)) {
+        setEndDateError("End date must be after start date");
+        isValid = false;
+      }
     }
 
     return isValid;
@@ -141,7 +186,8 @@ const WalletTopup = () => {
     setStartDate("");
     setEndDate("");
     setEmailError("");
-    setDateError("");
+    setStartDateError("");
+    setEndDateError("");
     setResetTrigger(true);
   };
 
@@ -169,8 +215,7 @@ const WalletTopup = () => {
 
     if (email) filters.push(`email: ${email}`);
     if (status) filters.push(`status: ${status}`);
-    if (startDate)
-      filters.push(`from ${dayjs(startDate).format("DD/MM/YYYY")}`);
+    if (startDate) filters.push(`from ${dayjs(startDate).format("DD/MM/YYYY")}`);
     if (endDate) filters.push(`to ${dayjs(endDate).format("DD/MM/YYYY")}`);
 
     if (filters.length > 0) {
@@ -251,8 +296,14 @@ const WalletTopup = () => {
                           value={startDate}
                           onChange={(e) => {
                             setStartDate(e.target.value);
-                            if (dateError) setDateError("");
+                            if (startDateError) setStartDateError("");
                           }}
+                          inputProps={{
+                            min: minAllowedDate,
+                            max: maxAllowedDate
+                          }}
+                          error={!!startDateError}
+                          helperText={startDateError}
                           fullWidth
                           size="small"
                         />
@@ -265,10 +316,14 @@ const WalletTopup = () => {
                           value={endDate}
                           onChange={(e) => {
                             setEndDate(e.target.value);
-                            if (dateError) setDateError("");
+                            if (endDateError) setEndDateError("");
                           }}
-                          error={!!dateError}
-                          helperText={dateError}
+                          inputProps={{
+                            min: minAllowedDate,
+                            max: maxAllowedDate
+                          }}
+                          error={!!endDateError}
+                          helperText={endDateError}
                           fullWidth
                           size="small"
                         />
@@ -368,7 +423,7 @@ const WalletTopup = () => {
                           </tbody>
                         </table>
 
-                        <div className="container-fluid">
+                        <div className="container-fluid mb-3">
                           <div className="row">
                             <div className="col-3">
                               <FormControl variant="standard" fullWidth>

@@ -45,6 +45,10 @@ const AeroPayTransaction = () => {
   const [dateError, setDateError] = useState("");
 
   const token = Cookies.get("authToken");
+  
+  // Define date constraints
+  const today = dayjs().format("YYYY-MM-DD");
+  const minDate = "2025-01-01";
 
   const getData = async (page = 1, pageSize = resultsPerPage) => {
     setLoading(true);
@@ -128,6 +132,12 @@ const AeroPayTransaction = () => {
     // Date validation
     if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
       setDateError("End date must be after start date");
+      isValid = false;
+    } else if (startDate && (new Date(startDate) < new Date(minDate) || new Date(startDate) > new Date(today))) {
+      setDateError(`Start date must be between ${dayjs(minDate).format("DD/MM/YYYY")} and today`);
+      isValid = false;
+    } else if (endDate && (new Date(endDate) < new Date(minDate) || new Date(endDate) > new Date(today))) {
+      setDateError(`End date must be between ${dayjs(minDate).format("DD/MM/YYYY")} and today`);
       isValid = false;
     } else {
       setDateError("");
@@ -250,6 +260,11 @@ const AeroPayTransaction = () => {
                           }}
                           fullWidth
                           size="small"
+                          inputProps={{ 
+                            min: minDate, 
+                            max: today 
+                          }}
+                          helperText={``}
                         />
                       </div>
                       <div className="col-md-3">
@@ -266,6 +281,10 @@ const AeroPayTransaction = () => {
                           helperText={dateError}
                           fullWidth
                           size="small"
+                          inputProps={{ 
+                            min: minDate, 
+                            max: today 
+                          }}
                         />
                       </div>
                       <div className="col-md-2 d-flex align-items-end">
@@ -327,7 +346,7 @@ const AeroPayTransaction = () => {
                                     className={`badge bg-${
                                       txn.status === "ACTIVE"
                                         ? "success"
-                                        : "secondary"
+                                        : txn.status === "DISABLED" ? "danger":"secondary"
                                     }`}
                                   >
                                     {txn.status}
@@ -354,7 +373,7 @@ const AeroPayTransaction = () => {
                         </table>
                       </div>
                       {/* Pagination Controls */}
-                      <div className="container-fluid mt-3">
+                      <div className="container-fluid mt-3 mb-3">
                         <div className="row">
                           <div className="col-3">
                             <FormControl variant="standard" fullWidth>

@@ -26,6 +26,10 @@ import SideNav from "../../../components/SideNav";
 import Loader from "../../../components/Loader";
 
 const CryptoTransaction = () => {
+  // Define min and max allowed dates
+  const minAllowedDate = "2025-01-01";
+  const maxAllowedDate = dayjs().format("YYYY-MM-DD");
+  
   const [transactions, setTransactions] = useState([]);
   const [pagination, setPagination] = useState({
     current_page: 1,
@@ -42,7 +46,8 @@ const CryptoTransaction = () => {
   const [resetTrigger, setResetTrigger] = useState(false);
   const [emailError, setEmailError] = useState("");
   const [mobileError, setMobileError] = useState("");
-  const [dateError, setDateError] = useState("");
+  const [startDateError, setStartDateError] = useState("");
+  const [endDateError, setEndDateError] = useState("");
 
   const token = Cookies.get("authToken");
 
@@ -101,28 +106,67 @@ const CryptoTransaction = () => {
   const validateForm = () => {
     let isValid = true;
 
+    // Reset errors
+    setEmailError("");
+    setMobileError("");
+    setStartDateError("");
+    setEndDateError("");
+
     // Email validation
     if (email && !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
       setEmailError("Invalid email address");
       isValid = false;
-    } else {
-      setEmailError("");
     }
 
     // Mobile validation
     if (mobile && !/^\d{10}$/.test(mobile)) {
       setMobileError("Mobile must be 10 digits");
       isValid = false;
-    } else {
-      setMobileError("");
     }
 
-    // Date validation
-    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
-      setDateError("End date must be after start date");
-      isValid = false;
-    } else {
-      setDateError("");
+    // Start date validation
+    if (startDate) {
+      const start = dayjs(startDate);
+      const minDate = dayjs(minAllowedDate);
+      const maxDate = dayjs(maxAllowedDate);
+      
+      if (start.isBefore(minDate)) {
+        setStartDateError(`Date must be on or after ${minDate.format("DD/MM/YYYY")}`);
+        isValid = false;
+      }
+      
+      if (start.isAfter(maxDate)) {
+        setStartDateError("Future dates are not allowed");
+        isValid = false;
+      }
+    }
+
+    // End date validation
+    if (endDate) {
+      const end = dayjs(endDate);
+      const minDate = dayjs(minAllowedDate);
+      const maxDate = dayjs(maxAllowedDate);
+      
+      if (end.isBefore(minDate)) {
+        setEndDateError(`Date must be on or after ${minDate.format("DD/MM/YYYY")}`);
+        isValid = false;
+      }
+      
+      if (end.isAfter(maxDate)) {
+        setEndDateError("Future dates are not allowed");
+        isValid = false;
+      }
+    }
+
+    // Cross validation between dates
+    if (startDate && endDate) {
+      const start = dayjs(startDate);
+      const end = dayjs(endDate);
+      
+      if (end.isBefore(start)) {
+        setEndDateError("End date must be after start date");
+        isValid = false;
+      }
     }
 
     return isValid;
@@ -142,7 +186,8 @@ const CryptoTransaction = () => {
     setEndDate("");
     setEmailError("");
     setMobileError("");
-    setDateError("");
+    setStartDateError("");
+    setEndDateError("");
     setResetTrigger(true);
   };
 
@@ -247,8 +292,14 @@ const CryptoTransaction = () => {
                           value={startDate}
                           onChange={(e) => {
                             setStartDate(e.target.value);
-                            if (dateError) setDateError("");
+                            if (startDateError) setStartDateError("");
                           }}
+                          inputProps={{
+                            min: minAllowedDate,
+                            max: maxAllowedDate
+                          }}
+                          error={!!startDateError}
+                          helperText={startDateError}
                           fullWidth
                           size="small"
                         />
@@ -261,10 +312,14 @@ const CryptoTransaction = () => {
                           value={endDate}
                           onChange={(e) => {
                             setEndDate(e.target.value);
-                            if (dateError) setDateError("");
+                            if (endDateError) setEndDateError("");
                           }}
-                          error={!!dateError}
-                          helperText={dateError}
+                          inputProps={{
+                            min: minAllowedDate,
+                            max: maxAllowedDate
+                          }}
+                          error={!!endDateError}
+                          helperText={endDateError}
                           fullWidth
                           size="small"
                         />
@@ -367,7 +422,7 @@ const CryptoTransaction = () => {
                         </table>
 
                         {/* Pagination and Per Page Select */}
-                        <div className="container-fluid">
+                        <div className="container-fluid mb-3">
                           <div className="row">
                             <div className="col-3">
                               <FormControl variant="standard" fullWidth>

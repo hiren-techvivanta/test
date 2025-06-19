@@ -7,6 +7,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  TextField,
+  Button,
 } from "@mui/material";
 import DeleteForeverRoundedIcon from "@mui/icons-material/DeleteForeverRounded";
 import SideNav from "../../components/SideNav";
@@ -21,24 +23,41 @@ import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import Cookies from "js-cookie";
 
 const Kyc = () => {
-  const [resultsPerPage, setResultsPerPage] = useState(10);
-  const [userData, setUserData] = useState([]);
-  const [modalShow, setModalShow] = React.useState(false);
-  const [id, setid] = useState("");
-  const [loading, setloading] = useState(false);
+  // State variables
+  const [kycSubmissions, setKycSubmissions] = useState([]);
+  const [modalShow, setModalShow] = useState(false);
+  const [id, setId] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    current_page: 1,
+    total_pages: 1,
+    page_size: 10,
+    total_kyc_submissions: 0,
+    has_next: false,
+    has_previous: false,
+    next_page: null,
+    previous_page: null
+  });
+  
+  // Filter states
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  
+  // Error states
+  const [emailError, setEmailError] = useState("");
+  const [dateError, setDateError] = useState("");
+  
+  // Reset trigger
+  const [resetTrigger, setResetTrigger] = useState(0);
 
   const token = Cookies.get("authToken");
+  const config = { headers: { Authorization: `Bearer ${token}` } };
 
-  const config = {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  };
-
-  const handleChange = (event) => {
-    setResultsPerPage(event.target.value);
-    // You can also trigger a data fetch here if needed
-  };
+  // Date constraints
+  const today = new Date().toISOString().split('T')[0];
+  const minDate = "2025-01-01";
 
   useEffect(() => {
     if (token) {
@@ -46,33 +65,138 @@ const Kyc = () => {
     }
   }, [token]);
 
-  const getData = async () => {
-    setloading(true);
+  // Handle reset trigger
+  useEffect(() => {
+    if (resetTrigger > 0) {
+      getData(1);
+      setResetTrigger(0);
+    }
+  }, [resetTrigger]);
+
+  const handlePageSizeChange = (event) => {
+    const newSize = event.target.value;
+    setPagination(prev => ({ ...prev, page_size: newSize }));
+    getData(pagination.current_page, newSize);
+  };
+
+  const handlePageChange = (event, page) => {
+    setPagination(prev => ({ ...prev, current_page: page }));
+    getData(page);
+  };
+
+  const validateFilters = () => {
+    let isValid = true;
+    
+    // Email validation
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailError("Invalid email format");
+      isValid = false;
+    } else {
+      setEmailError("");
+    }
+    
+    // Date validation
+    if (startDate || endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const todayDate = new Date();
+      const minAllowedDate = new Date(minDate);
+      
+      if (startDate && start > todayDate) {
+        setDateError("Start date cannot be in the future");
+        isValid = false;
+      } 
+      else if (endDate && end > todayDate) {
+        setDateError("End date cannot be in the future");
+        isValid = false;
+      }
+      else if (startDate && endDate && start > end) {
+        setDateError("End date cannot be before start date");
+        isValid = false;
+      } 
+      else if (startDate && start < minAllowedDate) {
+        setDateError(`Start date must be after ${minDate}`);
+        isValid = false;
+      }
+      else {
+        setDateError("");
+      }
+    }
+    
+    return isValid;
+  };
+
+  const handleFilterSubmit = (e) => {
+    e.preventDefault();
+    
+    if (validateFilters()) {
+      // Reset to first page when applying new filters
+      setPagination(prev => ({ ...prev, current_page: 1 }));
+      getData(1);
+    }
+  };
+
+  const resetFilters = () => {
+    setEmail("");
+    setStatus("");
+    setStartDate("");
+    setEndDate("");
+    setEmailError("");
+    setDateError("");
+    
+    // Reset pagination to first page
+    setPagination(prev => ({
+      ...prev,
+      current_page: 1
+    }));
+    
+    // Trigger reset effect
+    setResetTrigger(prev => prev + 1);
+  };
+
+  const getData = async (page = pagination.current_page, pageSize = pagination.page_size) => {
+    setLoading(true);
     try {
+      const params = {
+        page,
+        page_size: pageSize,
+        ...(email && { email }),
+        ...(status && { status }),
+        ...(startDate && { start_date: startDate }),
+        ...(endDate && { end_date: endDate })
+      };
+
       const { data } = await axios.get(
         `${process.env.REACT_APP_BACKEND_URL}/api/auth/admin/kyc`,
-        config
+        {
+          ...config,
+          params
+        }
       );
 
       if (data.message === "KYC submissions retrieved successfully") {
-        setUserData(data.data.kyc_submissions);
-        setloading(false);
+        setKycSubmissions(data.data.kyc_submissions);
+        setPagination(prev => ({
+          ...prev,
+          ...data.data.pagination
+        }));
+        setLoading(false);
       }
     } catch (e) {
-      toast.error(e.response.data.message || "Internal server error");
-      setloading(false);
+      toast.error(e.response?.data?.message || "Internal server error");
+      setLoading(false);
     }
   };
 
   const handleUpdateStatus = (e, id) => {
     e.preventDefault();
-    setid(id);
+    setId(id);
     setModalShow(true);
   };
 
-  // approve reaject modal
+  // Modal component
   function MyVerticallyCenteredModal(props) {
-    const [message, setmessage] = useState("");
+    const [message, setMessage] = useState("");
     const [filterData, setFilterData] = useState({});
 
     const handleSubmit = async (e, status) => {
@@ -90,8 +214,8 @@ const Kyc = () => {
         );
 
         if (data.error === "") {
-          setid("");
-          getData();
+          setId("");
+          getData(pagination.current_page);
           toast.success(data.message);
           setModalShow(false);
         }
@@ -102,10 +226,10 @@ const Kyc = () => {
 
     useEffect(() => {
       if (modalShow === true && id !== "") {
-        const filteredData = userData.filter((e) => e.id === id);
+        const filteredData = kycSubmissions.filter((e) => e.id === id);
         setFilterData(filteredData[0]);
       }
-    }, [modalShow, id]);
+    }, [modalShow, id, kycSubmissions]);
 
     return (
       <Modal
@@ -128,49 +252,72 @@ const Kyc = () => {
                     <tbody>
                       <tr>
                         <th>Name</th>
-                        <td>{`${filterData?.first_name} ${filterData?.last_name}`}</td>
+                        <td>{`${
+                          filterData?.user_details?.full_name || "N/A"
+                        }`}</td>
                       </tr>
                       <tr>
                         <th>Email</th>
-                        <td>{filterData?.email}</td>
+                        <td>{filterData?.user_details?.email || "N/A"}</td>
                       </tr>
                       <tr>
                         <th>DOB</th>
-                        <td>{filterData?.dob}</td>
+                        <td>{filterData?.date_of_birth || "N/A"}</td>
                       </tr>
                       <tr>
                         <th>Mobile No.</th>
-                        <td>{filterData?.phone_number}</td>
+                        <td>
+                          {filterData?.user_details?.phone_number || "N/A"}
+                        </td>
                       </tr>
                       <tr>
                         <th>Address</th>
                         <td>
-                          {`${filterData?.residential_address?.line1}, ${filterData?.residential_address?.line2}, ${filterData?.residential_address?.street}, ${filterData?.residential_address?.city}, ${filterData?.residential_address?.state}, ${filterData?.residential_address?.country} - ${filterData?.residential_address?.postalCode}`}
+                          {filterData?.residential_address
+                            ? `${filterData.residential_address.line1}, 
+                             ${filterData.residential_address.line2 || ""}, 
+                             ${filterData.residential_address.street || ""}, 
+                             ${filterData.residential_address.city}, 
+                             ${filterData.residential_address.state}, 
+                             ${filterData.residential_address.country} - 
+                             ${filterData.residential_address.postal_code}`
+                            : "N/A"}
                         </td>
                       </tr>
                       <tr>
                         <th>Document No.</th>
-                        <td>{filterData?.id_document_number}</td>
+                        <td>{filterData?.document_number || "N/A"}</td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
               </div>
               <div className="col-12">
-                <img
-                  src={filterData?.document_image_url?.replace(
-                    "http://185.131.54.49:9292",
-                    "https://uatwavemoney.onewave.app"
-                  )}
-                  className="img-fluid"
-                  alt={filterData?.first_name}
-                />
+                {filterData?.document_image && (
+                  <img
+                    src={`https://uatwavemoney.onewave.app${filterData.document_image}`}
+                    className="img-fluid"
+                    alt="Document"
+                  />
+                )}
               </div>
+              {filterData.document_back && (
+                <div className="col-12">
+                  {filterData?.document_image && (
+                    <img
+                      src={`https://uatwavemoney.onewave.app${filterData.document_back}`}
+                      className="img-fluid"
+                      alt="Document"
+                    />
+                  )}
+                </div>
+              )}
+
               <div className="col-12">
                 {filterData?.admin_message && (
                   <p className="text-black-50 m-0">
                     <span className="text-black">Admin message : </span>
-                    {filterData?.admin_message}
+                    {filterData.admin_message}
                   </p>
                 )}
               </div>
@@ -183,7 +330,7 @@ const Kyc = () => {
                         <input
                           type="text"
                           className="form-control"
-                          onChange={(e) => setmessage(e.target.value)}
+                          onChange={(e) => setMessage(e.target.value)}
                         />
                       </div>
                       <div className="col-12 d-flex justify-content-around">
@@ -213,10 +360,8 @@ const Kyc = () => {
 
   return (
     <>
-      {loading === true ? (
-        <>
-          <Loader />
-        </>
+      {loading ? (
+        <Loader />
       ) : (
         <>
           <div className="container py-5 mb-lg-4 ">
@@ -228,15 +373,112 @@ const Kyc = () => {
                   <h1 className="h2 mb-4 mb-sm-0 me-4">Users KYC List</h1>
                 </div>
 
+                {/* Filter Card */}
                 <div className="card shadow border-0">
+                  <div className="card-body">
+                    <form onSubmit={handleFilterSubmit} className="">
+                      <div className="row g-3">
+                        {/* Email Filter */}
+                        <div className="col-md-3">
+                          <TextField
+                            label="Email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            error={!!emailError}
+                            helperText={emailError}
+                            fullWidth
+                            size="small"
+                          />
+                        </div>
+                        
+                        {/* Status Filter */}
+                        <div className="col-md-3">
+                          <FormControl fullWidth size="small">
+                            <InputLabel>Status</InputLabel>
+                            <Select
+                              value={status}
+                              onChange={(e) => setStatus(e.target.value)}
+                              label="Status"
+                            >
+                              <MenuItem value="">All</MenuItem>
+                              <MenuItem value="Pending">Pending</MenuItem>
+                              <MenuItem value="Approved">Approved</MenuItem>
+                              <MenuItem value="Rejected">Rejected</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </div>
+                        
+                        {/* Start Date Filter */}
+                        <div className="col-md-3">
+                          <TextField
+                            label="Start Date"
+                            type="date"
+                            InputLabelProps={{ shrink: true }}
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            fullWidth
+                            size="small"
+                            inputProps={{ 
+                              min: minDate, 
+                              max: today 
+                            }}
+                          />
+                        </div>
+                        
+                        {/* End Date Filter */}
+                        <div className="col-md-3">
+                          <TextField
+                            label="End Date"
+                            type="date"
+                            InputLabelProps={{ shrink: true }}
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            error={!!dateError}
+                            helperText={dateError}
+                            fullWidth
+                            size="small"
+                            inputProps={{ 
+                              min: startDate || minDate, 
+                              max: today 
+                            }}
+                            disabled={!startDate}
+                          />
+                        </div>
+                        
+                        {/* Action Buttons */}
+                        <div className="col-md-2 d-flex align-items-end">
+                          <Button
+                            variant="contained"
+                            color="primary"
+                            type="submit"
+                            fullWidth
+                          >
+                            Apply
+                          </Button>
+                        </div>
+                        <div className="col-md-2 d-flex align-items-end">
+                          <Button
+                            variant="outlined"
+                            color="light"
+                            onClick={resetFilters}
+                            fullWidth
+                          >
+                            Reset
+                          </Button>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+
+                {/* Data Table Card */}
+                <div className="card shadow border-0 mt-3">
                   <div className="card-body">
                     <div className="row g-3 g-xl-4">
                       <div className="col-12">
                         <div className="overflow-auto">
-                          {userData.length === 0 ? (
-                            <>
-                              <h5 className="text-center">No Data Found</h5>
-                            </>
+                          {kycSubmissions.length === 0 ? (
+                            <h5 className="text-center">No Data Found</h5>
                           ) : (
                             <>
                               <table className="table">
@@ -245,16 +487,18 @@ const Kyc = () => {
                                     <th>#</th>
                                     <th>Name</th>
                                     <th>Email</th>
+                                    <th>Mobile</th>
                                     <th>Status</th>
                                     <th className="text-center">Action</th>
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {userData?.map((val, ind) => (
-                                    <tr key={ind}>
-                                      <td>{ind + 1}</td>
-                                      <td>{`${val.first_name} ${val.last_name}`}</td>
-                                      <td>{val.email}</td>
+                                  {kycSubmissions.map((val, index) => (
+                                    <tr key={val.id}>
+                                      <td>{index + 1 + (pagination.current_page - 1) * pagination.page_size}</td>
+                                      <td>{val.user_details?.full_name || 'N/A'}</td>
+                                      <td>{val.user_details?.email || 'N/A'}</td>
+                                      <td>{val.user_details?.phone_number || 'N/A'}</td>
                                       <td>
                                         <span
                                           className={
@@ -269,7 +513,7 @@ const Kyc = () => {
                                         </span>
                                       </td>
                                       <td>
-                                        <div className="d-flex justify-content-around">
+                                        <div className="d-flex justify-content-center">
                                           <Tooltip title="View Details">
                                             <IconButton
                                               color="info"
@@ -287,18 +531,15 @@ const Kyc = () => {
                                 </tbody>
                               </table>
 
-                              <div className="container-fluid">
-                                <div className="row">
-                                  <div className="col-3">
+                              {/* Pagination */}
+                              <div className="container-fluid mt-3">
+                                <div className="row align-items-center">
+                                  <div className="col-md-3">
                                     <FormControl variant="standard" fullWidth>
-                                      <InputLabel id="results-label">
-                                        Results
-                                      </InputLabel>
+                                      <InputLabel>Results per page</InputLabel>
                                       <Select
-                                        labelId="results-label"
-                                        id="results-select"
-                                        value={resultsPerPage}
-                                        onChange={handleChange}
+                                        value={pagination.page_size}
+                                        onChange={handlePageSizeChange}
                                       >
                                         <MenuItem value={10}>10</MenuItem>
                                         <MenuItem value={25}>25</MenuItem>
@@ -307,10 +548,11 @@ const Kyc = () => {
                                       </Select>
                                     </FormControl>
                                   </div>
-                                  <div className="col-9 d-flex justify-content-end">
+                                  <div className="col-md-9 d-flex justify-content-end">
                                     <Pagination
-                                      count={11}
-                                      defaultPage={1}
+                                      count={pagination.total_pages}
+                                      page={pagination.current_page}
+                                      onChange={handlePageChange}
                                       color="primary"
                                     />
                                   </div>

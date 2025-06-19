@@ -23,8 +23,13 @@ import SideNav from "../../components/SideNav";
 import axios from "axios";
 import Cookies from "js-cookie";
 import Loader from "../../components/Loader";
+import dayjs from "dayjs"; // Added dayjs for date handling
 
 const BankAccountList = () => {
+  // Define min and max allowed dates
+  const minAllowedDate = "2025-01-01";
+  const maxAllowedDate = dayjs().format("YYYY-MM-DD");
+  
   const [resultsPerPage, setResultsPerPage] = useState(10);
   const [transactions, setTransactions] = useState([]);
   const [email, setEmail] = useState("");
@@ -40,7 +45,8 @@ const BankAccountList = () => {
   const [resetTrigger, setResetTrigger] = useState(false);
   const [currency, setcurrency] = useState("");
   const [emailError, setEmailError] = useState("");
-  const [dateError, setDateError] = useState("");
+  const [startDateError, setStartDateError] = useState(""); // Split into separate errors
+  const [endDateError, setEndDateError] = useState(""); // Split into separate errors
 
   const token = Cookies.get("authToken");
 
@@ -108,20 +114,60 @@ const BankAccountList = () => {
   const validateForm = () => {
     let isValid = true;
 
+    // Reset errors
+    setEmailError("");
+    setStartDateError("");
+    setEndDateError("");
+
     // Email validation
     if (email && !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
       setEmailError("Invalid email address");
       isValid = false;
-    } else {
-      setEmailError("");
     }
 
-    // Date validation
-    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
-      setDateError("End date must be after start date");
-      isValid = false;
-    } else {
-      setDateError("");
+    // Start date validation
+    if (startDate) {
+      const start = dayjs(startDate);
+      const minDate = dayjs(minAllowedDate);
+      const maxDate = dayjs(maxAllowedDate);
+      
+      if (start.isBefore(minDate)) {
+        setStartDateError(`Date must be on or after ${minDate.format("DD/MM/YYYY")}`);
+        isValid = false;
+      }
+      
+      if (start.isAfter(maxDate)) {
+        setStartDateError("Future dates are not allowed");
+        isValid = false;
+      }
+    }
+
+    // End date validation
+    if (endDate) {
+      const end = dayjs(endDate);
+      const minDate = dayjs(minAllowedDate);
+      const maxDate = dayjs(maxAllowedDate);
+      
+      if (end.isBefore(minDate)) {
+        setEndDateError(`Date must be on or after ${minDate.format("DD/MM/YYYY")}`);
+        isValid = false;
+      }
+      
+      if (end.isAfter(maxDate)) {
+        setEndDateError("Future dates are not allowed");
+        isValid = false;
+      }
+    }
+
+    // Cross validation between dates
+    if (startDate && endDate) {
+      const start = dayjs(startDate);
+      const end = dayjs(endDate);
+      
+      if (end.isBefore(start)) {
+        setEndDateError("End date must be after start date");
+        isValid = false;
+      }
     }
 
     return isValid;
@@ -140,7 +186,8 @@ const BankAccountList = () => {
     setEndDate("");
     setcurrency("");
     setEmailError("");
-    setDateError("");
+    setStartDateError("");
+    setEndDateError("");
     setResetTrigger(true);
   };
 
@@ -168,8 +215,8 @@ const BankAccountList = () => {
 
     if (email) filters.push(`email: ${email}`);
     if (currency) filters.push(`currency: ${currency}`);
-    if (startDate) filters.push(`from ${startDate}`);
-    if (endDate) filters.push(`to ${endDate}`);
+    if (startDate) filters.push(`from ${dayjs(startDate).format("DD/MM/YYYY")}`);
+    if (endDate) filters.push(`to ${dayjs(endDate).format("DD/MM/YYYY")}`);
 
     if (filters.length > 0) {
       message += ` with ${filters.join(" and ")}`;
@@ -218,8 +265,14 @@ const BankAccountList = () => {
                           value={startDate}
                           onChange={(e) => {
                             setStartDate(e.target.value);
-                            if (dateError) setDateError("");
+                            if (startDateError) setStartDateError("");
                           }}
+                          inputProps={{
+                            min: minAllowedDate,
+                            max: maxAllowedDate
+                          }}
+                          error={!!startDateError}
+                          helperText={startDateError}
                           fullWidth
                           size="small"
                         />
@@ -232,10 +285,14 @@ const BankAccountList = () => {
                           value={endDate}
                           onChange={(e) => {
                             setEndDate(e.target.value);
-                            if (dateError) setDateError("");
+                            if (endDateError) setEndDateError("");
                           }}
-                          error={!!dateError}
-                          helperText={dateError}
+                          inputProps={{
+                            min: minAllowedDate,
+                            max: maxAllowedDate
+                          }}
+                          error={!!endDateError}
+                          helperText={endDateError}
                           fullWidth
                           size="small"
                         />
@@ -287,11 +344,9 @@ const BankAccountList = () => {
                 <div className="card-body">
                   <div className="overflow-auto">
                     {transactions.length === 0 ? (
-                      <tr>
-                        <td colSpan="7" className="text-center">
-                          {getNoDataMessage()}
-                        </td>
-                      </tr>
+                      <div className="text-center">
+                        {getNoDataMessage()}
+                      </div>
                     ) : (
                       <>
                         <table className="table">
@@ -335,7 +390,7 @@ const BankAccountList = () => {
                           </tbody>
                         </table>
 
-                        <div className="container-fluid">
+                        <div className="container-fluid mb-3">
                           <div className="row">
                             <div className="col-3">
                               <FormControl variant="standard" fullWidth>
