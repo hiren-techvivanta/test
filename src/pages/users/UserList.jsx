@@ -64,7 +64,7 @@ const UserList = () => {
   const fetchUsers = async () => {
     setLoading(true);
 
-    let url = `http://185.131.54.49:8000/api/auth/admin/users/?page=${currentPage}&page_size=${resultsPerPage}`;
+    let url = `${process.env.REACT_APP_BACKEND_URL}/api/auth/admin/users/?page=${currentPage}&page_size=${resultsPerPage}`;
 
     // Add filters to URL - use appliedFilters instead of filters
     if (appliedFilters.email) url += `&email=${appliedFilters.email}`;
