@@ -26,6 +26,7 @@ import AeroPayTransaction from "./pages/transacrions/aeropaytransaction/AeroPayT
 import CryptoTransaction from "./pages/transacrions/cryptotransactions/CryptoTransaction.jsx";
 import BankAccountList from "./pages/bank/BankAccountList.jsx";
 import WalletTopup from "./pages/wallet/WalletTopup.jsx";
+import UserRefList from "./pages/referrals/UserRefList.jsx";
 
 function App() {
   return (
@@ -57,6 +58,7 @@ function App() {
           <Route path="/cripto/transaction" element={<CryptoTransaction />} />
           <Route path="/bank-accounts" element={<BankAccountList />} />
           <Route path="/wallet-topup/transaction" element={<WalletTopup />} />
+          <Route path="/user/referrals" element={<UserRefList />} />
 
           <Route path="*" element={<Error404 />} />
         </Routes>

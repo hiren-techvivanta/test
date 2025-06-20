@@ -85,6 +85,16 @@ const SideNav = () => {
                 User List
                 {/* <span className="badge bg-danger ms-auto">4</span> */}
               </Link>
+                  <Link
+                className={`nav-link fw-semibold py-2 px-0 ${
+                  isActive("/user/referrals") ? "active" : ""
+                }`}
+                to="/user/referrals"
+              >
+                <i className="ai-user-plus fs-5 opacity-60 me-2"></i>
+                User Referrals
+                {/* <span className="badge bg-danger ms-auto">4</span> */}
+              </Link>
               <Link
                 className={`nav-link fw-semibold py-2 px-0 ${
                   isActive("/wallet/mangement") ? "active" : ""

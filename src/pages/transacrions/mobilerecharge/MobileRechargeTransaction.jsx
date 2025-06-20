@@ -51,7 +51,7 @@ const MobileRechargeTransaction = () => {
   const token = Cookies.get("authToken");
   
   // Date validation parameters
-  const MIN_DATE = "2025-01-01";
+  const MIN_DATE = "0000-01-01";
   const today = dayjs().format("YYYY-MM-DD");
 
   const getData = async (page = 1, pageSize = resultsPerPage) => {
@@ -107,8 +107,14 @@ const MobileRechargeTransaction = () => {
     const todayObj = dayjs().startOf('day');
     const minDateObj = dayjs(MIN_DATE);
 
+ // Email validation
+    const trimmedEmail = email.trim(); 
+
     // Email validation
-    if (email && !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
+    if (
+      trimmedEmail &&
+      !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(trimmedEmail)
+    ) {
       setEmailError("Invalid email address");
       isValid = false;
     } else {
@@ -128,7 +134,7 @@ const MobileRechargeTransaction = () => {
       const start = dayjs(startDate);
       
       if (start.isBefore(minDateObj)) {
-        dateErrorMsg = "Start date cannot be before 2025-01-01";
+        dateErrorMsg = "Start date cannot be before 0000-01-01";
       } else if (start.isAfter(todayObj)) {
         dateErrorMsg = "Start date cannot be in the future";
       }
@@ -138,7 +144,7 @@ const MobileRechargeTransaction = () => {
       const end = dayjs(endDate);
       
       if (end.isBefore(minDateObj)) {
-        dateErrorMsg = "End date cannot be before 2025-01-01";
+        dateErrorMsg = "End date cannot be before 0000-01-01";
       } else if (end.isAfter(todayObj)) {
         dateErrorMsg = "End date cannot be in the future";
       }

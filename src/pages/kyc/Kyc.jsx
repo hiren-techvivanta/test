@@ -57,7 +57,7 @@ const Kyc = () => {
 
   // Date constraints
   const today = new Date().toISOString().split("T")[0];
-  const minDate = "2025-01-01";
+  const minDate = "0000-01-01";
 
   useEffect(() => {
     if (token) {
@@ -87,9 +87,15 @@ const Kyc = () => {
   const validateFilters = () => {
     let isValid = true;
 
+   // Email validation
+    const trimmedEmail = email.trim(); 
+
     // Email validation
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setEmailError("Invalid email format");
+    if (
+      trimmedEmail &&
+      !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(trimmedEmail)
+    ) {
+      setEmailError("Invalid email address");
       isValid = false;
     } else {
       setEmailError("");

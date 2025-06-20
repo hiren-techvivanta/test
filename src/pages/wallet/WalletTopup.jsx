@@ -27,7 +27,7 @@ import Loader from "../../components/Loader";
 
 const WalletTopup = () => {
   // Define min and max allowed dates
-  const minAllowedDate = "2025-01-01";
+  const minAllowedDate = "0000-01-01";
   const maxAllowedDate = dayjs().format("YYYY-MM-DD");
   
   const [resultsPerPage, setResultsPerPage] = useState(10);
@@ -120,9 +120,17 @@ const WalletTopup = () => {
     setEndDateError("");
 
     // Email validation
-    if (email && !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
+    const trimmedEmail = email.trim(); 
+
+    // Email validation
+    if (
+      trimmedEmail &&
+      !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(trimmedEmail)
+    ) {
       setEmailError("Invalid email address");
       isValid = false;
+    } else {
+      setEmailError("");
     }
 
     // Start date validation

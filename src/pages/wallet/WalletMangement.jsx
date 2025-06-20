@@ -12,16 +12,22 @@ const config = {
   },
 };
 
-const WalletMangement = () => {
+const WalletManagement = () => {
   const [email, setEmail] = useState("");
   const [balance, setBalance] = useState(null);
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState("");
+  
+  // NEW: Error states
+  const [emailError, setEmailError] = useState("");
+  const [amountError, setAmountError] = useState("");
 
   const handleFetchBalance = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setEmailError(""); // Clear previous errors
+    
     try {
       const response = await axios.post(
         `${process.env.REACT_APP_BACKEND_URL}/api/wallet/admin/get-user-balance/`,
@@ -35,7 +41,7 @@ const WalletMangement = () => {
       const errorMsg = err.response?.data?.error || 
                       err.message || 
                       "Failed to fetch user balance";
-      toast.error(`Error: ${errorMsg}`);
+      setEmailError(errorMsg); // NEW: Set email error
       setBalance(null);
     } finally {
       setLoading(false);
@@ -46,32 +52,36 @@ const WalletMangement = () => {
     setEmail("");
     setBalance(null);
     setAmount("");
+    setEmailError(""); // NEW: Reset errors
+    setAmountError("");
   };
 
   const handleWalletAction = async (type) => {
-    // FIXED: Added missing closing parenthesis in this condition
+    // NEW: Reset amount errors first
+    setAmountError("");
+    
+    let error = "";
     if (!amount || isNaN(amount)) {
-      toast.error("Please enter a valid amount.");
+      error = "Please enter a valid amount";
+    } else {
+      const amountNum = parseFloat(amount);
+      
+      if (amountNum <= 0) {
+        error = "Amount must be greater than 0";
+      } else if (amountNum > 99999999) {
+        error = "Amount cannot exceed $99,999,999";
+      } else if (type === "remove" && amountNum > balance) {
+        error = "Reduction amount exceeds user balance";
+      }
+    }
+
+    // NEW: Set error and return if validation fails
+    if (error) {
+      setAmountError(error);
       return;
     }
 
     const amountNum = parseFloat(amount);
-    
-    if (amountNum <= 0) {
-      toast.error("Amount must be greater than 0");
-      return;
-    }
-
-    if (amountNum > 99999999) {
-      toast.error("Amount cannot exceed $99,999,999");
-      return;
-    }
-
-    if (type === "remove" && amountNum > balance) {
-      toast.error("Reduction amount exceeds user balance");
-      return;
-    }
-
     const actionType = type === "add" ? "Add" : "Reduce";
     const confirmed = window.confirm(
       `Are you sure you want to ${actionType.toLowerCase()} $${amountNum.toFixed(2)} ?`
@@ -105,13 +115,15 @@ const WalletMangement = () => {
   const handleAmountChange = (e) => {
     let value = e.target.value;
     
+    // Clear errors when user types
+    if (amountError) setAmountError("");
+    
     // Remove any negative signs
     if (value.startsWith('-')) value = value.substring(1);
     
     // Limit to 8 digits before decimal
     const parts = value.split('.');
     if (parts[0].length > 8) {
-      toast.error("Maximum 8 digits allowed");
       return;
     }
     
@@ -135,19 +147,28 @@ const WalletMangement = () => {
           <div className="card shadow border-0">
             <div className="card-body">
               <form onSubmit={handleFetchBalance}>
-                <div className="row align-items-end mb-3">
+                <div className="row">
                   <div className="col-6">
                     <label>Email</label>
                     <input
                       type="email"
-                      className="form-control"
+                      className={`form-control ${emailError ? "is-invalid" : ""}`}
                       placeholder="Enter user email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (emailError) setEmailError(""); // Clear error on type
+                      }}
                       required
                     />
+                    {/* NEW: Email error display */}
+                    {emailError && (
+                      <div className="invalid-feedback d-block">
+                        {emailError}
+                      </div>
+                    )}
                   </div>
-                  <div className="col-6">
+                  <div className="col-6 my-4">
                     <button
                       type="submit"
                       className="btn btn-primary"
@@ -175,24 +196,30 @@ const WalletMangement = () => {
                   <div className="alert alert-info mb-3">
                     <strong>User USD Balance:</strong> ${Number(balance)?.toFixed(2)}
                   </div>
-                  <div className="row align-items-end">
+                  <div className="row">
                     <div className="col-md-6">
                       <label>Amount</label>
                       <div className="input-group p-0">
                         <span className="input-group-text">$</span>
                         <input
                           type="number"
-                          className="form-control"
+                          className={`form-control ${amountError ? "is-invalid" : ""}`}
                           placeholder="Enter amount (max 8 digits)"
                           value={amount}
                           onChange={handleAmountChange}
                           min="0"
                           max="99999999"
-                          step="0.01"
+                          maxLength="8"
                         />
                       </div>
+                      {/* NEW: Amount error display */}
+                      {amountError && (
+                        <div className="invalid-feedback d-block">
+                          {amountError}
+                        </div>
+                      )}
                     </div>
-                    <div className="col-md-6 d-flex gap-2 mt-3 mt-md-0">
+                    <div className="col-md-6 d-flex gap-2 my-4 ">
                       <button
                         className="btn btn-success"
                         type="button"
@@ -243,4 +270,4 @@ const WalletMangement = () => {
   );
 };
 
-export default WalletMangement;
+export default WalletManagement;

@@ -45,10 +45,10 @@ const AeroPayTransaction = () => {
   const [dateError, setDateError] = useState("");
 
   const token = Cookies.get("authToken");
-  
+
   // Define date constraints
   const today = dayjs().format("YYYY-MM-DD");
-  const minDate = "2025-01-01";
+  const minDate = "0000-01-01";
 
   const getData = async (page = 1, pageSize = resultsPerPage) => {
     setLoading(true);
@@ -114,7 +114,14 @@ const AeroPayTransaction = () => {
     let isValid = true;
 
     // Email validation
-    if (email && !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
+    const trimmedEmail = email.trim(); 
+    
+
+    // Email validation
+    if (
+      trimmedEmail &&
+      !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(trimmedEmail)
+    ) {
       setEmailError("Invalid email address");
       isValid = false;
     } else {
@@ -133,11 +140,27 @@ const AeroPayTransaction = () => {
     if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
       setDateError("End date must be after start date");
       isValid = false;
-    } else if (startDate && (new Date(startDate) < new Date(minDate) || new Date(startDate) > new Date(today))) {
-      setDateError(`Start date must be between ${dayjs(minDate).format("DD/MM/YYYY")} and today`);
+    } else if (
+      startDate &&
+      (new Date(startDate) < new Date(minDate) ||
+        new Date(startDate) > new Date(today))
+    ) {
+      setDateError(
+        `Start date must be between ${dayjs(minDate).format(
+          "DD/MM/YYYY"
+        )} and today`
+      );
       isValid = false;
-    } else if (endDate && (new Date(endDate) < new Date(minDate) || new Date(endDate) > new Date(today))) {
-      setDateError(`End date must be between ${dayjs(minDate).format("DD/MM/YYYY")} and today`);
+    } else if (
+      endDate &&
+      (new Date(endDate) < new Date(minDate) ||
+        new Date(endDate) > new Date(today))
+    ) {
+      setDateError(
+        `End date must be between ${dayjs(minDate).format(
+          "DD/MM/YYYY"
+        )} and today`
+      );
       isValid = false;
     } else {
       setDateError("");
@@ -260,9 +283,9 @@ const AeroPayTransaction = () => {
                           }}
                           fullWidth
                           size="small"
-                          inputProps={{ 
-                            min: minDate, 
-                            max: today 
+                          inputProps={{
+                            min: minDate,
+                            max: today,
                           }}
                           helperText={``}
                         />
@@ -281,9 +304,9 @@ const AeroPayTransaction = () => {
                           helperText={dateError}
                           fullWidth
                           size="small"
-                          inputProps={{ 
-                            min: minDate, 
-                            max: today 
+                          inputProps={{
+                            min: minDate,
+                            max: today,
                           }}
                         />
                       </div>
@@ -302,6 +325,7 @@ const AeroPayTransaction = () => {
                           variant="outlined"
                           onClick={resetFilters}
                           fullWidth
+                          color="light"
                         >
                           Reset
                         </Button>
@@ -346,7 +370,9 @@ const AeroPayTransaction = () => {
                                     className={`badge bg-${
                                       txn.status === "ACTIVE"
                                         ? "success"
-                                        : txn.status === "DISABLED" ? "danger":"secondary"
+                                        : txn.status === "DISABLED"
+                                        ? "danger"
+                                        : "secondary"
                                     }`}
                                   >
                                     {txn.status}

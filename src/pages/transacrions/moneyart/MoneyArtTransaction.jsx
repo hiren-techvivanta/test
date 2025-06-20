@@ -52,8 +52,8 @@ const MoneyArtTransaction = () => {
   // Get today's date in YYYY-MM-DD format
   const today = dayjs().format("YYYY-MM-DD");
   
-  // Minimum allowed date (2025-01-01)
-  const minDate = "2025-01-01";
+  // Minimum allowed date (0000-01-01)
+  const minDate = "0000-01-01";
 
   const getData = async (page = 1, pageSize = resultsPerPage) => {
     setLoading(true);
@@ -120,7 +120,13 @@ const MoneyArtTransaction = () => {
     let isValid = true;
 
     // Email validation
-    if (email && !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
+    const trimmedEmail = email.trim(); 
+
+    // Email validation
+    if (
+      trimmedEmail &&
+      !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(trimmedEmail)
+    ) {
       setEmailError("Invalid email address");
       isValid = false;
     } else {

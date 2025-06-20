@@ -27,7 +27,7 @@ import Loader from "../../../components/Loader";
 
 const CryptoTransaction = () => {
   // Define min and max allowed dates
-  const minAllowedDate = "2025-01-01";
+  const minAllowedDate = "0000-01-01";
   const maxAllowedDate = dayjs().format("YYYY-MM-DD");
   
   const [transactions, setTransactions] = useState([]);
@@ -112,10 +112,18 @@ const CryptoTransaction = () => {
     setStartDateError("");
     setEndDateError("");
 
+   // Email validation
+    const trimmedEmail = email.trim(); 
+
     // Email validation
-    if (email && !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
+    if (
+      trimmedEmail &&
+      !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(trimmedEmail)
+    ) {
       setEmailError("Invalid email address");
       isValid = false;
+    } else {
+      setEmailError("");
     }
 
     // Mobile validation
@@ -339,6 +347,7 @@ const CryptoTransaction = () => {
                           variant="outlined"
                           onClick={resetFilters}
                           fullWidth
+                          color="light"
                         >
                           Reset
                         </Button>
