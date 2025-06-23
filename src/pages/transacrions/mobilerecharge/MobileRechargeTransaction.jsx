@@ -19,6 +19,7 @@ import {
   Tooltip,
   IconButton,
   DialogContentText,
+  CircularProgress,
 } from "@mui/material";
 import { toast } from "react-toastify";
 import axios from "axios";
@@ -47,6 +48,7 @@ const MobileRechargeTransaction = () => {
   const [emailError, setEmailError] = useState("");
   const [mobileError, setMobileError] = useState("");
   const [dateError, setDateError] = useState("");
+  const [exporting, setExporting] = useState(false);
 
   const token = Cookies.get("authToken");
   
@@ -107,10 +109,9 @@ const MobileRechargeTransaction = () => {
     const todayObj = dayjs().startOf('day');
     const minDateObj = dayjs(MIN_DATE);
 
- // Email validation
+    // Email validation
     const trimmedEmail = email.trim(); 
 
-    // Email validation
     if (
       trimmedEmail &&
       !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(trimmedEmail)
@@ -182,6 +183,100 @@ const MobileRechargeTransaction = () => {
     setMobileError("");
     setDateError("");
     setResetTrigger(true);
+  };
+
+  // New function to handle CSV export
+  const handleExport = async () => {
+    if (!validateForm()) return;
+    
+    setExporting(true);
+    try {
+      const params = {
+        email: email || undefined,
+        mobile_number: mobile || undefined,
+        start_date: startDate || undefined,
+        end_date: endDate || undefined,
+      };
+
+      Object.keys(params).forEach(
+        (key) => params[key] === undefined && delete params[key]
+      );
+
+      const response = await axios.get(
+        `${process.env.REACT_APP_BACKEND_URL}/api/utility-app/admin/mobile-transactions/`,
+        {
+          params,
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (response.data.status === 200) {
+        const transactions = response.data.data.transactions;
+        if (transactions.length === 0) {
+          toast.info("No data to export");
+          return;
+        }
+
+        // Create CSV content
+        const headers = [
+          "ID", "Order ID", "Client Order ID", "Mobile Number", 
+          "Operator Code", "Amount", "Status", "Recharge Type", 
+          "UTR", "Created At", "User Name", "User Email", "User Phone"
+        ];
+
+        const rows = transactions.map(txn => [
+          txn.id,
+          txn.order_id,
+          txn.client_order_id,
+          txn.number,
+          txn.operator_code,
+          txn.amount,
+          txn.status === "1" ? "Success" : "Failed",
+          txn.recharge_type,
+          txn.utr,
+          dayjs(txn.created_at).format("DD/MM/YYYY hh:mm A"),
+          txn.user_details?.full_name || "",
+          txn.user_details?.email || "",
+          txn.user_details?.phone_number || ""
+        ]);
+
+        // Escape CSV fields
+        const escapeField = (field) => {
+          if (field == null) return "";
+          const str = String(field);
+          return str.includes(",") || str.includes('"') || str.includes("\n") 
+            ? `"${str.replace(/"/g, '""')}"` 
+            : str;
+        };
+
+        // Create CSV content
+        const csvContent = [
+          headers.map(escapeField).join(","),
+          ...rows.map(row => row.map(escapeField).join(","))
+        ].join("\n");
+
+        // Create Blob and download
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        
+        // Create filename with timestamp
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        link.download = `mobile_recharge_${timestamp}.csv`;
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else {
+        toast.error("Failed to fetch data for export");
+      }
+    } catch (error) {
+      toast.error("Export failed: " + (error.response?.data?.error || "Internal server error"));
+    } finally {
+      setExporting(false);
+    }
   };
 
   useEffect(() => {
@@ -346,6 +441,22 @@ const MobileRechargeTransaction = () => {
                           Reset
                         </Button>
                       </div>
+                      {/* Export Button */}
+                      <div className="col-md-2 d-flex align-items-end">
+                        <Button
+                          variant="contained"
+                          color="success"
+                          onClick={handleExport}
+                          disabled={exporting}
+                          fullWidth
+                        >
+                          {exporting ? (
+                            <CircularProgress size={24} color="inherit" />
+                          ) : (
+                            "Export"
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   </form>
                 </div>
@@ -394,12 +505,12 @@ const MobileRechargeTransaction = () => {
                                 <td>
                                   <span
                                     className={`badge bg-${
-                                      v.status === "success"
+                                      v.status === "1"
                                         ? "success"
                                         : "danger"
                                     }`}
                                   >
-                                    {v.status}
+                                    {v.status === "1" ? "Success" : "Failed"}
                                   </span>
                                 </td>
                                 <td>$ {v.amount}</td>
@@ -545,7 +656,7 @@ const MobileRechargeTransaction = () => {
                             <strong>Status</strong>
                           </TableCell>
                           <TableCell>
-                            {selectedTransaction.status || "N/A"}
+                            {selectedTransaction.status === "1" ? "Success" : "Failed"}
                           </TableCell>
                         </TableRow>
                         <TableRow>

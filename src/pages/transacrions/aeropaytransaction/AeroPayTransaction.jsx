@@ -17,6 +17,7 @@ import {
   TableRow,
   TextField,
   Button,
+  CircularProgress,
 } from "@mui/material";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import axios from "axios";
@@ -43,6 +44,7 @@ const AeroPayTransaction = () => {
   const [emailError, setEmailError] = useState("");
   const [mobileError, setMobileError] = useState("");
   const [dateError, setDateError] = useState("");
+  const [exporting, setExporting] = useState(false);
 
   const token = Cookies.get("authToken");
 
@@ -50,7 +52,7 @@ const AeroPayTransaction = () => {
   const today = dayjs().format("YYYY-MM-DD");
   const minDate = "0000-01-01";
 
-  const getData = async (page = 1, pageSize = resultsPerPage) => {
+const getData = async (page = 1, pageSize = resultsPerPage) => {
     setLoading(true);
     try {
       const params = {
@@ -222,6 +224,116 @@ const AeroPayTransaction = () => {
     return message;
   };
 
+  const fetchExportData = async () => {
+    if (!validateForm()) return;
+    
+    setExporting(true);
+    try {
+      const params = {
+        email: email || undefined,
+        mobile_number: mobile || undefined,
+        start_date: startDate || undefined,
+        end_date: endDate || undefined,
+      };
+
+      Object.keys(params).forEach(
+        (key) => params[key] === undefined && delete params[key]
+      );
+
+      const res = await axios.get(
+        `${process.env.REACT_APP_BACKEND_URL}/api/card/admin/cards/`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params,
+        }
+      );
+
+      if (res.data.status === 200) {
+        const { cards } = res.data.data;
+        if (!cards || cards.length === 0) {
+          alert("No data to export");
+          return;
+        }
+
+        // Create filename with timestamp
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const fileName = `aeropay_cards_${timestamp}`;
+        
+        // Flatten cards for CSV
+        const flattenedCards = cards.map((card) => ({
+          id: card.id,
+          card_id: card.card_id,
+          name: card.name,
+          masked_pan: card.masked_pan,
+          expiry: card.expiry,
+          status: card.status,
+          type: card.type,
+          issuer: card.issuer,
+          currency: card.currency,
+          brand: card.brand,
+          amount: card.amount,
+          created_at: card.created_at,
+          user_email: card.user_details?.email || "",
+          user_phone: card.user_details?.phone_number || "",
+          user_full_name: card.user_details?.full_name || "",
+        }));
+
+        // Define CSV columns
+        const columns = [
+          { id: "id", title: "ID" },
+          { id: "card_id", title: "Card ID" },
+          { id: "name", title: "Cardholder Name" },
+          { id: "masked_pan", title: "Masked PAN" },
+          { id: "expiry", title: "Expiry" },
+          { id: "status", title: "Status" },
+          { id: "type", title: "Type" },
+          { id: "issuer", title: "Issuer" },
+          { id: "currency", title: "Currency" },
+          { id: "brand", title: "Brand" },
+          { id: "amount", title: "Amount" },
+          { id: "created_at", title: "Created At" },
+          { id: "user_email", title: "User Email" },
+          { id: "user_phone", title: "User Phone" },
+          { id: "user_full_name", title: "User Full Name" },
+        ];
+
+        // Escape CSV fields
+        const escapeField = (field) => {
+          if (field == null) return "";
+          const str = String(field);
+          return str.includes(",") || str.includes('"') || str.includes("\n") 
+            ? `"${str.replace(/"/g, '""')}"` 
+            : str;
+        };
+
+        // Generate CSV content
+        const headerRow = columns.map(col => escapeField(col.title)).join(",");
+        const dataRows = flattenedCards.map(card => 
+          columns.map(col => escapeField(card[col.id])).join(",")
+        );
+        
+        const csvContent = [headerRow, ...dataRows].join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        
+        // Trigger download
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${fileName}.csv`;
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        console.error("Export failed:", res.data.message);
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+
   return (
     <>
       {loading ? (
@@ -328,6 +440,21 @@ const AeroPayTransaction = () => {
                           color="light"
                         >
                           Reset
+                        </Button>
+                      </div>
+                      <div className="col-md-2 d-flex align-items-end">
+                        <Button
+                          variant="contained"
+                          color="success"
+                          className="w-100"
+                          onClick={fetchExportData}
+                          disabled={exporting}
+                        >
+                          {exporting ? (
+                            <CircularProgress size={24} color="inherit" />
+                          ) : (
+                            "Export"
+                          )}
                         </Button>
                       </div>
                     </div>

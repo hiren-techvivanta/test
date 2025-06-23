@@ -17,13 +17,14 @@ import {
   TableRow,
   TextField,
   Button,
+  CircularProgress,
 } from "@mui/material";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import SideNav from "../../components/SideNav";
 import axios from "axios";
 import Cookies from "js-cookie";
 import Loader from "../../components/Loader";
-import dayjs from "dayjs"; // Added dayjs for date handling
+import dayjs from "dayjs";
 
 const BankAccountList = () => {
   // Define min and max allowed dates
@@ -45,8 +46,9 @@ const BankAccountList = () => {
   const [resetTrigger, setResetTrigger] = useState(false);
   const [currency, setcurrency] = useState("");
   const [emailError, setEmailError] = useState("");
-  const [startDateError, setStartDateError] = useState(""); // Split into separate errors
-  const [endDateError, setEndDateError] = useState(""); // Split into separate errors
+  const [startDateError, setStartDateError] = useState("");
+  const [endDateError, setEndDateError] = useState("");
+  const [exporting, setExporting] = useState(false); // Added exporting state
 
   const token = Cookies.get("authToken");
 
@@ -119,10 +121,9 @@ const BankAccountList = () => {
     setStartDateError("");
     setEndDateError("");
 
- // Email validation
+    // Email validation
     const trimmedEmail = email.trim(); 
 
-    // Email validation
     if (
       trimmedEmail &&
       !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(trimmedEmail)
@@ -233,6 +234,108 @@ const BankAccountList = () => {
     return message;
   };
 
+  // NEW EXPORT FUNCTIONALITY
+  const fetchExportData = async () => {
+    if (!validateForm()) return;
+    
+    setExporting(true);
+    try {
+      const params = {
+        email: email || undefined,
+        start_date: startDate || undefined,
+        end_date: endDate || undefined,
+        currency: currency || undefined,
+      };
+
+      Object.keys(params).forEach(
+        (key) => params[key] === undefined && delete params[key]
+      );
+
+      const res = await axios.get(
+        `${process.env.REACT_APP_BACKEND_URL}/api/wallet/admin/bank-accounts/`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params,
+        }
+      );
+
+      if (res.data.status === 200) {
+        const { accounts } = res.data.data;
+        if (accounts.length === 0) {
+          alert("No data to export");
+          return;
+        }
+
+        // Create filename with timestamp
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const fileName = `bank_accounts_${timestamp}`;
+        
+        // Flatten accounts for CSV
+        const flattenedAccounts = accounts.map((account) => ({
+          id: account.id,
+          created_at: account.created_at,
+          account_number: account.account_number,
+          currency: account.currency,
+          balance: account.balance,
+          bank_name: account.bank_name || "",
+          account_holder_name: account.account_holder_name || "",
+          user_email: account.user_details?.email || "",
+          user_phone: account.user_details?.phone_number || "",
+          user_full_name: account.user_details?.full_name || "",
+        }));
+
+        // Define CSV columns
+        const columns = [
+          { id: "id", title: "ID" },
+          { id: "created_at", title: "Created At" },
+          { id: "account_number", title: "Account Number" },
+          { id: "currency", title: "Currency" },
+          { id: "balance", title: "Balance" },
+          { id: "bank_name", title: "Bank Name" },
+          { id: "account_holder_name", title: "Account Holder" },
+          { id: "user_email", title: "User Email" },
+          { id: "user_phone", title: "User Phone" },
+          { id: "user_full_name", title: "User Full Name" },
+        ];
+
+        // Escape CSV fields
+        const escapeField = (field) => {
+          if (field == null) return "";
+          const str = String(field);
+          return str.includes(",") || str.includes('"') || str.includes("\n") 
+            ? `"${str.replace(/"/g, '""')}"` 
+            : str;
+        };
+
+        // Generate CSV content
+        const headerRow = columns.map(col => escapeField(col.title)).join(",");
+        const dataRows = flattenedAccounts.map(account => 
+          columns.map(col => escapeField(account[col.id])).join(",")
+        );
+        
+        const csvContent = [headerRow, ...dataRows].join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        
+        // Trigger download
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${fileName}.csv`;
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        console.error("Export failed:", res.data.message);
+        alert("Failed to export data");
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+      alert("Error exporting data");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <>
       {loading ? (
@@ -341,6 +444,22 @@ const BankAccountList = () => {
                           fullWidth
                         >
                           Reset
+                        </Button>
+                      </div>
+                      {/* Added Export Button */}
+                      <div className="col-md-2 d-flex align-items-end">
+                        <Button
+                          variant="contained"
+                          className="w-100"
+                          color="success"
+                          onClick={fetchExportData}
+                          disabled={exporting}
+                        >
+                          {exporting ? (
+                            <CircularProgress size={24} color="inherit" />
+                          ) : (
+                            "Export"
+                          )}
                         </Button>
                       </div>
                     </div>

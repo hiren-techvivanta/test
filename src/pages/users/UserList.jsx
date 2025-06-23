@@ -18,6 +18,7 @@ import {
   TableBody,
   TableCell,
   TableRow,
+  Switch,
 } from "@mui/material";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import DeleteForeverRoundedIcon from "@mui/icons-material/DeleteForeverRounded";
@@ -49,6 +50,7 @@ const UserList = () => {
   });
   const [open, setOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [exporting, setExporting] = useState(false);
 
   // Validation states
   const [emailError, setEmailError] = useState("");
@@ -99,7 +101,7 @@ const UserList = () => {
 
   useEffect(() => {
     if (token) fetchUsers();
-  }, [currentPage, resultsPerPage, token, appliedFilters]); // Added appliedFilters to dependency array
+  }, [currentPage, resultsPerPage, token, appliedFilters]);
 
   const handlePageChange = (event, page) => {
     setCurrentPage(page);
@@ -273,6 +275,124 @@ const UserList = () => {
     return isNaN(num) ? val : num.toFixed(4);
   };
 
+  // Fetch data for CSV export
+  const fetchExportData = async () => {
+    setExporting(true);
+
+    try {
+      let url = `${process.env.REACT_APP_BACKEND_URL}/api/auth/admin/users/?`;
+
+      // Only include non-empty filters
+      const validFilters = Object.entries(appliedFilters).filter(
+        ([key, value]) => value !== ""
+      );
+
+      if (validFilters.length > 0) {
+        const params = new URLSearchParams(validFilters).toString();
+        url += `&${params}`;
+      }
+
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = await response.json();
+
+      if (data.status === 200) {
+        // Create filename with timestamp
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const fileName = `wave_money_${timestamp}_user_list`;
+        
+        // Flatten nested objects for CSV
+        const flattenedUsers = data.data.users.map((user) => ({
+          sr_no: user.sr_no,
+          email: user.email,
+          full_name: user.full_name,
+          phone_number: user.phone_number,
+          country: user.country.match(/name: ([^)]+)/)?.[1] || user.country,
+          is_bank_account: user.is_bank_account ? "Yes" : "No",
+          is_verified: user.is_verified ? "Yes" : "No",
+          is_active: user.is_active ? "Yes" : "No",
+          kyc_status: user.kyc_status,
+          kyc_id: user.kyc_details?.kyc_id || "",
+          kyc_submission_date: user.kyc_details?.submission_date || "",
+          kyc_admin_message: user.kyc_details?.admin_message || "",
+          wallet_balance: user.wallet_info?.balance || "",
+          wallet_currency: user.wallet_info?.currency || "",
+          bnb_balance: user.crypto_balances?.bnb_balance || "",
+          usdt_balance: user.crypto_balances?.usdt_balance || "",
+          usdc_balance: user.crypto_balances?.usdc_balance || "",
+          wave_balance: user.crypto_balances?.wave_balance || "",
+          referral_code: user.referral_code,
+          referred_by: user.referred_by || "",
+          total_referrals: user.total_referrals,
+          created_at: user.created_at,
+          last_login: user.last_login || "",
+        }));
+
+        // Define CSV columns
+        const columns = [
+          { id: "sr_no", title: "SR No" },
+          { id: "email", title: "Email" },
+          { id: "full_name", title: "Full Name" },
+          { id: "phone_number", title: "Phone Number" },
+          { id: "country", title: "Country" },
+          { id: "is_bank_account", title: "Has Bank Account" },
+          { id: "is_verified", title: "Verified" },
+          { id: "is_active", title: "Active" },
+          { id: "kyc_status", title: "KYC Status" },
+          { id: "kyc_id", title: "KYC ID" },
+          { id: "kyc_submission_date", title: "KYC Submission Date" },
+          { id: "kyc_admin_message", title: "KYC Admin Message" },
+          { id: "wallet_balance", title: "Wallet Balance" },
+          { id: "wallet_currency", title: "Wallet Currency" },
+          { id: "bnb_balance", title: "BNB Balance" },
+          { id: "usdt_balance", title: "USDT Balance" },
+          { id: "usdc_balance", title: "USDC Balance" },
+          { id: "wave_balance", title: "WAVE Balance" },
+          { id: "referral_code", title: "Referral Code" },
+          { id: "referred_by", title: "Referred By" },
+          { id: "total_referrals", title: "Total Referrals" },
+          { id: "created_at", title: "Created At" },
+          { id: "last_login", title: "Last Login" },
+        ];
+
+        // Escape CSV fields
+        const escapeField = (field) => {
+          if (field == null) return "";
+          const str = String(field);
+          return str.includes(",") || str.includes('"') || str.includes("\n") 
+            ? `"${str.replace(/"/g, '""')}"` 
+            : str;
+        };
+
+        // Generate CSV content
+        const headerRow = columns.map(col => escapeField(col.title)).join(",");
+        const dataRows = flattenedUsers.map(user => 
+          columns.map(col => escapeField(user[col.id])).join(",")
+        );
+        
+        const csvContent = [headerRow, ...dataRows].join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        
+        // Trigger download
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${fileName}.csv`;
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        console.error("Export failed:", data.message);
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="container py-5 mb-lg-4 ">
       <div className="row pt-sm-2 pt-lg-0">
@@ -284,7 +404,6 @@ const UserList = () => {
           </div>
 
           {/* Filter Section */}
-
           <div className="card shadow border-0 mb-4">
             <div className="card-body">
               <div className="row g-3">
@@ -381,7 +500,7 @@ const UserList = () => {
                     onClick={applyFilters}
                     className="me-2 w-100"
                   >
-                    Apply Filters
+                    Apply
                   </Button>
                 </div>
                 <div className="col-2">
@@ -391,6 +510,21 @@ const UserList = () => {
                     onClick={resetFilters}
                   >
                     Reset
+                  </Button>
+                </div>
+                <div className="col-2">
+                  <Button
+                    variant="contained"
+                    className="w-100"
+                    color="success"
+                    onClick={fetchExportData}
+                    disabled={exporting}
+                  >
+                    {exporting ? (
+                      <CircularProgress size={24} color="inherit" />
+                    ) : (
+                      "Export"
+                    )}
                   </Button>
                 </div>
               </div>
@@ -422,7 +556,7 @@ const UserList = () => {
                                 <th>Email</th>
                                 <th>Phone</th>
                                 <th>KYC Status</th>
-                                <th>Created At</th>
+                                <th>Status</th>
                                 <th>Actions</th>
                               </tr>
                             </thead>
@@ -449,20 +583,13 @@ const UserList = () => {
                                     </span>
                                   </td>
                                   <td>
-                                    {dayjs(user.created_at).format(
-                                      "DD MMM YYYY"
-                                    )}
+                                    <Switch />
                                   </td>
                                   <td>
                                     <div className="d-flex justify-content-around">
                                       <Tooltip title="Edit">
                                         <IconButton color="primary">
                                           <EditRoundedIcon />
-                                        </IconButton>
-                                      </Tooltip>
-                                      <Tooltip title="Delete">
-                                        <IconButton color="error">
-                                          <DeleteForeverRoundedIcon />
                                         </IconButton>
                                       </Tooltip>
                                       <Tooltip title="View Details">
@@ -495,7 +622,6 @@ const UserList = () => {
                                     value={resultsPerPage}
                                     onChange={handleResultsPerPageChange}
                                   >
-                                    <MenuItem value={5}>5</MenuItem>
                                     <MenuItem value={10}>10</MenuItem>
                                     <MenuItem value={25}>25</MenuItem>
                                     <MenuItem value={50}>50</MenuItem>

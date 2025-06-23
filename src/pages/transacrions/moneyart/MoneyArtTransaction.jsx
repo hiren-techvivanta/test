@@ -18,6 +18,7 @@ import {
   Typography,
   TextField,
   Button,
+  CircularProgress,
 } from "@mui/material";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import SideNav from "../../../components/SideNav";
@@ -36,6 +37,7 @@ const MoneyArtTransaction = () => {
   const [pagination, setPagination] = useState({
     current_page: 1,
     total_pages: 1,
+    total_transactions: 0,
   });
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -46,12 +48,13 @@ const MoneyArtTransaction = () => {
   const [emailError, setEmailError] = useState("");
   const [mobileError, setMobileError] = useState("");
   const [dateError, setDateError] = useState("");
+  const [exporting, setExporting] = useState(false);
 
   const token = Cookies.get("authToken");
 
   // Get today's date in YYYY-MM-DD format
   const today = dayjs().format("YYYY-MM-DD");
-  
+
   // Minimum allowed date (0000-01-01)
   const minDate = "0000-01-01";
 
@@ -85,6 +88,7 @@ const MoneyArtTransaction = () => {
         setPagination({
           current_page: pg.current_page,
           total_pages: pg.total_pages,
+          total_transactions: pg.total_transactions,
         });
       }
     } catch (error) {
@@ -120,7 +124,7 @@ const MoneyArtTransaction = () => {
     let isValid = true;
 
     // Email validation
-    const trimmedEmail = email.trim(); 
+    const trimmedEmail = email.trim();
 
     // Email validation
     if (
@@ -145,11 +149,27 @@ const MoneyArtTransaction = () => {
     if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
       setDateError("End date must be after start date");
       isValid = false;
-    } else if (startDate && (new Date(startDate) < new Date(minDate) || new Date(startDate) > new Date(today))) {
-      setDateError(`Start date must be between ${dayjs(minDate).format("DD/MM/YYYY")} and today`);
+    } else if (
+      startDate &&
+      (new Date(startDate) < new Date(minDate) ||
+        new Date(startDate) > new Date(today))
+    ) {
+      setDateError(
+        `Start date must be between ${dayjs(minDate).format(
+          "DD/MM/YYYY"
+        )} and today`
+      );
       isValid = false;
-    } else if (endDate && (new Date(endDate) < new Date(minDate) || new Date(endDate) > new Date(today))) {
-      setDateError(`End date must be between ${dayjs(minDate).format("DD/MM/YYYY")} and today`);
+    } else if (
+      endDate &&
+      (new Date(endDate) < new Date(minDate) ||
+        new Date(endDate) > new Date(today))
+    ) {
+      setDateError(
+        `End date must be between ${dayjs(minDate).format(
+          "DD/MM/YYYY"
+        )} and today`
+      );
       isValid = false;
     } else {
       setDateError("");
@@ -209,6 +229,123 @@ const MoneyArtTransaction = () => {
     }
 
     return message;
+  };
+
+  const fetchExportData = async () => {
+    if (!validateForm()) return;
+    
+    setExporting(true);
+    try {
+      const params = {
+        email: email || undefined,
+        mobile_number: mobile || undefined,
+        start_date: startDate || undefined,
+        end_date: endDate || undefined,
+      };
+
+      Object.keys(params).forEach(
+        (key) => params[key] === undefined && delete params[key]
+      );
+
+      const res = await axios.get(
+        `${process.env.REACT_APP_BACKEND_URL}/api/utility-app/admin/bill-transactions/`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params,
+        }
+      );
+
+      if (res.data.status === 200) {
+        const { transactions } = res.data.data;
+        if (transactions.length === 0) {
+          alert("No data to export");
+          return;
+        }
+
+        // Create filename with timestamp
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const fileName = `moneyart_transactions_${timestamp}`;
+        
+        // Flatten transactions for CSV
+        const flattenedTransactions = transactions.map((txn) => ({
+          id: txn.id,
+          created_at: txn.created_at,
+          updated_at: txn.updated_at,
+          consumer_number: txn.consumer_number,
+          operator_code: txn.operator_code,
+          amount: txn.amount,
+          mobile_no: txn.mobile_no,
+          customer_name: txn.customer_name,
+          bill_ref_no: txn.bill_ref_no,
+          due_date: txn.due_date,
+          bill_type: txn.bill_type,
+          client_order_id: txn.client_order_id,
+          order_id: txn.order_id,
+          utr: txn.utr,
+          status: txn.status,
+          message: txn.message,
+          user_email: txn.user_details?.email || "",
+          user_phone: txn.user_details?.phone_number || "",
+          user_full_name: txn.user_details?.full_name || "",
+        }));
+
+        // Define CSV columns
+        const columns = [
+          { id: "id", title: "ID" },
+          { id: "created_at", title: "Created At" },
+          { id: "updated_at", title: "Updated At" },
+          { id: "consumer_number", title: "Consumer Number" },
+          { id: "operator_code", title: "Operator Code" },
+          { id: "amount", title: "Amount" },
+          { id: "mobile_no", title: "Mobile Number" },
+          { id: "customer_name", title: "Customer Name" },
+          { id: "bill_ref_no", title: "Bill Ref No" },
+          { id: "due_date", title: "Due Date" },
+          { id: "bill_type", title: "Bill Type" },
+          { id: "client_order_id", title: "Client Order ID" },
+          { id: "order_id", title: "Order ID" },
+          { id: "utr", title: "UTR" },
+          { id: "status", title: "Status" },
+          { id: "message", title: "Message" },
+          { id: "user_email", title: "User Email" },
+          { id: "user_phone", title: "User Phone" },
+          { id: "user_full_name", title: "User Full Name" },
+        ];
+
+        // Escape CSV fields
+        const escapeField = (field) => {
+          if (field == null) return "";
+          const str = String(field);
+          return str.includes(",") || str.includes('"') || str.includes("\n") 
+            ? `"${str.replace(/"/g, '""')}"` 
+            : str;
+        };
+
+        // Generate CSV content
+        const headerRow = columns.map(col => escapeField(col.title)).join(",");
+        const dataRows = flattenedTransactions.map(txn => 
+          columns.map(col => escapeField(txn[col.id])).join(",")
+        );
+        
+        const csvContent = [headerRow, ...dataRows].join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        
+        // Trigger download
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${fileName}.csv`;
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        console.error("Export failed:", res.data.message);
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -276,11 +413,10 @@ const MoneyArtTransaction = () => {
                           }}
                           fullWidth
                           size="small"
-                          inputProps={{ 
-                            min: minDate, 
-                            max: today 
+                          inputProps={{
+                            min: minDate,
+                            max: today,
                           }}
-                          helperText={``}
                         />
                       </div>
                       <div className="col-md-3">
@@ -297,9 +433,9 @@ const MoneyArtTransaction = () => {
                           helperText={dateError}
                           fullWidth
                           size="small"
-                          inputProps={{ 
-                            min: minDate, 
-                            max: today 
+                          inputProps={{
+                            min: minDate,
+                            max: today,
                           }}
                         />
                       </div>
@@ -321,6 +457,21 @@ const MoneyArtTransaction = () => {
                           fullWidth
                         >
                           Reset
+                        </Button>
+                      </div>
+                      <div className="col-md-2 d-flex align-items-end">
+                        <Button
+                          variant="contained"
+                          className="w-100"
+                          color="success"
+                          onClick={fetchExportData}
+                          disabled={exporting}
+                        >
+                          {exporting ? (
+                            <CircularProgress size={24} color="inherit" />
+                          ) : (
+                            "Export"
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -373,7 +524,9 @@ const MoneyArtTransaction = () => {
                                     className={`badge bg-${
                                       txn.status === "success"
                                         ? "success"
-                                        : txn.status === "failed" ? "danger":"warning"
+                                        : txn.status === "failed"
+                                        ? "danger"
+                                        : "warning"
                                     }`}
                                   >
                                     {txn.status}

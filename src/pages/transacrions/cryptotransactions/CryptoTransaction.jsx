@@ -17,6 +17,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  CircularProgress,
 } from "@mui/material";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import axios from "axios";
@@ -34,6 +35,7 @@ const CryptoTransaction = () => {
   const [pagination, setPagination] = useState({
     current_page: 1,
     total_pages: 1,
+    total_transactions: 0,
   });
   const [loading, setLoading] = useState(false);
   const [resultsPerPage, setResultsPerPage] = useState(10);
@@ -48,6 +50,7 @@ const CryptoTransaction = () => {
   const [mobileError, setMobileError] = useState("");
   const [startDateError, setStartDateError] = useState("");
   const [endDateError, setEndDateError] = useState("");
+  const [exporting, setExporting] = useState(false); // New state for export loading
 
   const token = Cookies.get("authToken");
 
@@ -79,6 +82,7 @@ const CryptoTransaction = () => {
         setPagination({
           total_pages: res.data.data.pagination.total_pages || 1,
           current_page: res.data.data.pagination.current_page || 1,
+          total_transactions: res.data.data.pagination.total_transactions || 0,
         });
       }
     } catch (error) {
@@ -197,6 +201,100 @@ const CryptoTransaction = () => {
     setStartDateError("");
     setEndDateError("");
     setResetTrigger(true);
+  };
+
+  // NEW: Export functionality
+  const handleExport = async () => {
+    if (!validateForm()) return;
+    
+    setExporting(true);
+    try {
+      const params = {
+        email: email || undefined,
+        mobile_number: mobile || undefined,
+        start_date: startDate || undefined,
+        end_date: endDate || undefined,
+      };
+
+      Object.keys(params).forEach(
+        (key) => params[key] === undefined && delete params[key]
+      );
+
+      const res = await axios.get(
+        `${process.env.REACT_APP_BACKEND_URL}/api/deposite/admin/transactions/`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params,
+        }
+      );
+
+      if (res.data.status === 200) {
+        const transactions = res.data.data.transactions;
+        if (transactions.length === 0) {
+          return;
+        }
+
+        // Create CSV content
+        const headers = [
+          "ID", "Email", "Phone Number", "Full Name", "Coin", 
+          "Amount", "Type", "Fee", "From Address", "To Address", 
+          "Transaction Hash", "Status", "Balance After", "Internal", 
+          "Created At"
+        ];
+
+        const rows = transactions.map(txn => [
+          txn.id,
+          txn.user_details?.email || "",
+          txn.user_details?.phone_number || "",
+          txn.user_details?.full_name || "",
+          txn.coin || "",
+          txn.amount ? Number(txn.amount).toFixed(18).replace(/\.?0+$/, "") : "",
+          txn.transaction_type || "",
+          txn.fee || "",
+          txn.from_address || "",
+          txn.to_address || "",
+          txn.transaction_hash || "",
+          txn.status || "",
+          txn.balance_after_transaction || "",
+          txn.is_internal ? "Yes" : "No",
+          dayjs(txn.created_at).format("DD/MM/YYYY hh:mm A")
+        ]);
+
+        // Escape CSV fields
+        const escapeField = (field) => {
+          if (field == null) return "";
+          const str = String(field);
+          return str.includes(",") || str.includes('"') || str.includes("\n") 
+            ? `"${str.replace(/"/g, '""')}"` 
+            : str;
+        };
+
+        // Create CSV content
+        const csvContent = [
+          headers.map(escapeField).join(","),
+          ...rows.map(row => row.map(escapeField).join(","))
+        ].join("\n");
+
+        // Create Blob and download
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        
+        // Create filename with timestamp
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        link.download = `crypto_transactions_${timestamp}.csv`;
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else {
+      }
+    } catch (error) {
+    } finally {
+      setExporting(false);
+    }
   };
 
   useEffect(() => {
@@ -350,6 +448,22 @@ const CryptoTransaction = () => {
                           color="light"
                         >
                           Reset
+                        </Button>
+                      </div>
+                      {/* NEW: Export Button */}
+                      <div className="col-md-2 d-flex align-items-end">
+                        <Button
+                          variant="contained"
+                          color="success"
+                          onClick={handleExport}
+                          disabled={exporting}
+                          fullWidth
+                        >
+                          {exporting ? (
+                            <CircularProgress size={24} color="inherit" />
+                          ) : (
+                            "Export"
+                          )}
                         </Button>
                       </div>
                     </div>

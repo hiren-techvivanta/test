@@ -17,6 +17,7 @@ import {
   TableRow,
   TextField,
   Button,
+  CircularProgress,
 } from "@mui/material";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import SideNav from "../../components/SideNav";
@@ -45,8 +46,9 @@ const WalletTopup = () => {
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [resetTrigger, setResetTrigger] = useState(false);
   const [emailError, setEmailError] = useState("");
-  const [startDateError, setStartDateError] = useState(""); // Split into separate errors
-  const [endDateError, setEndDateError] = useState(""); // Split into separate errors
+  const [startDateError, setStartDateError] = useState("");
+  const [endDateError, setEndDateError] = useState("");
+  const [exporting, setExporting] = useState(false); // Added exporting state
 
   const token = Cookies.get("authToken");
 
@@ -122,7 +124,6 @@ const WalletTopup = () => {
     // Email validation
     const trimmedEmail = email.trim(); 
 
-    // Email validation
     if (
       trimmedEmail &&
       !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(trimmedEmail)
@@ -249,6 +250,110 @@ const WalletTopup = () => {
     return `${symbol} ${parseFloat(amount).toFixed(2)}`;
   };
 
+  // NEW EXPORT FUNCTIONALITY
+  const fetchExportData = async () => {
+    if (!validateForm()) return;
+    
+    setExporting(true);
+    try {
+      const params = {
+        email: email || undefined,
+        status: status || undefined,
+        start_date: startDate || undefined,
+        end_date: endDate || undefined,
+      };
+
+      Object.keys(params).forEach(
+        (key) => params[key] === undefined && delete params[key]
+      );
+
+      const res = await axios.get(
+        `${process.env.REACT_APP_BACKEND_URL}/api/wallet/admin/wallet-topups/`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params,
+        }
+      );
+
+      if (res.data.status === 200) {
+        const { topups } = res.data.data;
+        if (topups.length === 0) {
+          alert("No data to export");
+          return;
+        }
+
+        // Create filename with timestamp
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const fileName = `wallet_topups_${timestamp}`;
+        
+        // Flatten transactions for CSV
+        const flattenedTopups = topups.map((topup) => ({
+          id: topup.id,
+          created_at: topup.created_at,
+          completed_at: topup.completed_at,
+          user_email: topup.user_email,
+          user_full_name: topup.user_full_name,
+          currency: topup.currency,
+          amount: topup.amount,
+          status: topup.status,
+          external_transaction_id: topup.external_transaction_id,
+          airopay_transaction_id: topup.airopay_transaction_id,
+          charge_link: topup.charge_link,
+        }));
+
+        // Define CSV columns
+        const columns = [
+          { id: "id", title: "ID" },
+          { id: "created_at", title: "Created At" },
+          { id: "completed_at", title: "Completed At" },
+          { id: "user_email", title: "User Email" },
+          { id: "user_full_name", title: "User Full Name" },
+          { id: "currency", title: "Currency" },
+          { id: "amount", title: "Amount" },
+          { id: "status", title: "Status" },
+          { id: "external_transaction_id", title: "External Transaction ID" },
+          { id: "airopay_transaction_id", title: "Airopay Transaction ID" },
+          { id: "charge_link", title: "Charge Link" },
+        ];
+
+        // Escape CSV fields
+        const escapeField = (field) => {
+          if (field == null) return "";
+          const str = String(field);
+          return str.includes(",") || str.includes('"') || str.includes("\n") 
+            ? `"${str.replace(/"/g, '""')}"` 
+            : str;
+        };
+
+        // Generate CSV content
+        const headerRow = columns.map(col => escapeField(col.title)).join(",");
+        const dataRows = flattenedTopups.map(topup => 
+          columns.map(col => escapeField(topup[col.id])).join(",")
+        );
+        
+        const csvContent = [headerRow, ...dataRows].join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        
+        // Trigger download
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${fileName}.csv`;
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        console.error("Export failed:", res.data.message);
+        alert("Failed to export data");
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+      alert("Error exporting data");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <>
       {loading ? (
@@ -354,6 +459,22 @@ const WalletTopup = () => {
                           fullWidth
                         >
                           Reset
+                        </Button>
+                      </div>
+                      {/* Added Export Button */}
+                      <div className="col-md-2 d-flex align-items-end">
+                        <Button
+                          variant="contained"
+                          className="w-100"
+                          color="success"
+                          onClick={fetchExportData}
+                          disabled={exporting}
+                        >
+                          {exporting ? (
+                            <CircularProgress size={24} color="inherit" />
+                          ) : (
+                            "Export"
+                          )}
                         </Button>
                       </div>
                     </div>
