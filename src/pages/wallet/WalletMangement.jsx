@@ -18,7 +18,7 @@ const WalletManagement = () => {
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState("");
-  
+
   // NEW: Error states
   const [emailError, setEmailError] = useState("");
   const [amountError, setAmountError] = useState("");
@@ -26,8 +26,8 @@ const WalletManagement = () => {
   const handleFetchBalance = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setEmailError(""); // Clear previous errors
-    
+    setEmailError("");
+
     try {
       const response = await axios.post(
         `${process.env.REACT_APP_BACKEND_URL}/api/wallet/admin/get-user-balance/`,
@@ -38,9 +38,10 @@ const WalletManagement = () => {
       setBalance(usd_balance);
       toast.success("Balance fetched successfully");
     } catch (err) {
-      const errorMsg = err.response?.data?.error || 
-                      err.message || 
-                      "Failed to fetch user balance";
+      const errorMsg =
+        err.response?.data?.error ||
+        err.message ||
+        "Failed to fetch user balance";
       setEmailError(errorMsg); // NEW: Set email error
       setBalance(null);
     } finally {
@@ -52,20 +53,20 @@ const WalletManagement = () => {
     setEmail("");
     setBalance(null);
     setAmount("");
-    setEmailError(""); // NEW: Reset errors
+    setEmailError("");
     setAmountError("");
   };
 
   const handleWalletAction = async (type) => {
     // NEW: Reset amount errors first
     setAmountError("");
-    
+
     let error = "";
     if (!amount || isNaN(amount)) {
       error = "Please enter a valid amount";
     } else {
       const amountNum = parseFloat(amount);
-      
+
       if (amountNum <= 0) {
         error = "Amount must be greater than 0";
       } else if (amountNum > 99999999) {
@@ -84,7 +85,9 @@ const WalletManagement = () => {
     const amountNum = parseFloat(amount);
     const actionType = type === "add" ? "Add" : "Reduce";
     const confirmed = window.confirm(
-      `Are you sure you want to ${actionType.toLowerCase()} $${amountNum.toFixed(2)} ?`
+      `Are you sure you want to ${actionType.toLowerCase()} $${amountNum.toFixed(
+        2
+      )} ?`
     );
     if (!confirmed) return;
 
@@ -103,9 +106,8 @@ const WalletManagement = () => {
       toast.success(data.message || "Transaction successful");
       resetForm();
     } catch (err) {
-      const errorMsg = err.response?.data?.error || 
-                      err.message || 
-                      "Transaction failed";
+      const errorMsg =
+        err.response?.data?.error || err.message || "Transaction failed";
       toast.error(`Error: ${errorMsg}`);
     } finally {
       setActionLoading("");
@@ -113,26 +115,20 @@ const WalletManagement = () => {
   };
 
   const handleAmountChange = (e) => {
-    let value = e.target.value;
-    
-    // Clear errors when user types
-    if (amountError) setAmountError("");
-    
-    // Remove any negative signs
-    if (value.startsWith('-')) value = value.substring(1);
-    
-    // Limit to 8 digits before decimal
-    const parts = value.split('.');
-    if (parts[0].length > 8) {
-      return;
+    const raw = e.target.value.replace(/\D/g, ""); 
+    if (raw.length <= 8) {
+      setAmount(raw);
+      if (amountError) setAmountError("");
     }
-    
-    // Limit to 2 decimal places
-    if (parts.length > 1 && parts[1].length > 2) {
-      value = `${parts[0]}.${parts[1].substring(0, 2)}`;
-    }
-    
-    setAmount(value);
+  };
+
+  const handleClear = (e) => {
+    e.preventDefault();
+    setEmail("");
+    setBalance(null);
+    setAmount("");
+    setEmailError("");
+    setAmountError("");
   };
 
   return (
@@ -152,12 +148,14 @@ const WalletManagement = () => {
                     <label>Email</label>
                     <input
                       type="email"
-                      className={`form-control ${emailError ? "is-invalid" : ""}`}
+                      className={`form-control ${
+                        emailError ? "is-invalid" : ""
+                      }`}
                       placeholder="Enter user email"
                       value={email}
                       onChange={(e) => {
                         setEmail(e.target.value);
-                        if (emailError) setEmailError(""); // Clear error on type
+                        if (emailError) setEmailError("");
                       }}
                       required
                     />
@@ -172,7 +170,7 @@ const WalletManagement = () => {
                     <button
                       type="submit"
                       className="btn btn-primary"
-                      disabled={loading}
+                      disabled={loading || balance}
                     >
                       {loading ? (
                         <>
@@ -187,6 +185,12 @@ const WalletManagement = () => {
                         "Check Balance"
                       )}
                     </button>
+                    <button
+                      onClick={(e) => handleClear(e)}
+                      className="btn btn-outline-dark ms-2"
+                    >
+                      Reset
+                    </button>
                   </div>
                 </div>
               </form>
@@ -194,7 +198,8 @@ const WalletManagement = () => {
               {balance !== null && (
                 <>
                   <div className="alert alert-info mb-3">
-                    <strong>User USD Balance:</strong> ${Number(balance)?.toFixed(2)}
+                    <strong>User USD Balance:</strong> $
+                    {Number(balance)?.toFixed(2)}
                   </div>
                   <div className="row">
                     <div className="col-md-6">
@@ -202,14 +207,21 @@ const WalletManagement = () => {
                       <div className="input-group p-0">
                         <span className="input-group-text">$</span>
                         <input
-                          type="number"
-                          className={`form-control ${amountError ? "is-invalid" : ""}`}
+                          type="text"
+                          className={`form-control ${
+                            amountError ? "is-invalid" : ""
+                          }`}
                           placeholder="Enter amount (max 8 digits)"
                           value={amount}
                           onChange={handleAmountChange}
-                          min="0"
-                          max="99999999"
-                          maxLength="8"
+                          onKeyPress={(e) => {
+                            // Allow only digits
+                            if (!/[0-9]/.test(e.key)) {
+                              e.preventDefault();
+                            }
+                          }}
+                          inputMode="numeric"
+                          maxLength={8}
                         />
                       </div>
                       {/* NEW: Amount error display */}
