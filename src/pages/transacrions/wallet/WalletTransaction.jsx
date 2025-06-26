@@ -220,8 +220,6 @@ const WalletTransaction = () => {
         transaction_type: transactionType || undefined,
         start_date: startDate || undefined,
         end_date: endDate || undefined,
-        page_size: pagination.total_transactions,
-        page: 1,
       };
 
       // Clean undefined parameters
@@ -433,8 +431,8 @@ const WalletTransaction = () => {
                         <tr>
                           <th>#</th>
                           <th>Date & Time</th>
-                          <th>Transaction Id</th>
                           <th>User</th>
+                          <th>Email</th>
                           <th>Type</th>
                           <th>Amount</th>
                           <th>Balance</th>
@@ -463,8 +461,9 @@ const WalletTransaction = () => {
                                   "DD/MM/YYYY hh:mm A"
                                 )}
                               </td>
-                              <td>{txn.transaction_id}</td>
+                              
                               <td>{txn.user_details?.full_name}</td>
+                                <td>{txn.user_details?.email}</td>
                               <td>
                                 <span
                                   className={`badge bg-${
