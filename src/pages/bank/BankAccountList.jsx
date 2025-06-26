@@ -30,12 +30,12 @@ const BankAccountList = () => {
   // Define min and max allowed dates
   const minAllowedDate = "0000-01-01";
   const maxAllowedDate = dayjs().format("YYYY-MM-DD");
-  
+
   const [resultsPerPage, setResultsPerPage] = useState(10);
   const [transactions, setTransactions] = useState([]);
   const [email, setEmail] = useState("");
   const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [endDate, setEndDate] = useState(maxAllowedDate);
   const [pagination, setPagination] = useState({
     current_page: 1,
     total_pages: 1,
@@ -122,7 +122,7 @@ const BankAccountList = () => {
     setEndDateError("");
 
     // Email validation
-    const trimmedEmail = email.trim(); 
+    const trimmedEmail = email.trim();
 
     if (
       trimmedEmail &&
@@ -139,12 +139,14 @@ const BankAccountList = () => {
       const start = dayjs(startDate);
       const minDate = dayjs(minAllowedDate);
       const maxDate = dayjs(maxAllowedDate);
-      
+
       if (start.isBefore(minDate)) {
-        setStartDateError(`Date must be on or after ${minDate.format("DD/MM/YYYY")}`);
+        setStartDateError(
+          `Date must be on or after ${minDate.format("DD/MM/YYYY")}`
+        );
         isValid = false;
       }
-      
+
       if (start.isAfter(maxDate)) {
         setStartDateError("Future dates are not allowed");
         isValid = false;
@@ -156,12 +158,14 @@ const BankAccountList = () => {
       const end = dayjs(endDate);
       const minDate = dayjs(minAllowedDate);
       const maxDate = dayjs(maxAllowedDate);
-      
+
       if (end.isBefore(minDate)) {
-        setEndDateError(`Date must be on or after ${minDate.format("DD/MM/YYYY")}`);
+        setEndDateError(
+          `Date must be on or after ${minDate.format("DD/MM/YYYY")}`
+        );
         isValid = false;
       }
-      
+
       if (end.isAfter(maxDate)) {
         setEndDateError("Future dates are not allowed");
         isValid = false;
@@ -172,7 +176,7 @@ const BankAccountList = () => {
     if (startDate && endDate) {
       const start = dayjs(startDate);
       const end = dayjs(endDate);
-      
+
       if (end.isBefore(start)) {
         setEndDateError("End date must be after start date");
         isValid = false;
@@ -192,7 +196,7 @@ const BankAccountList = () => {
   const resetFilters = () => {
     setEmail("");
     setStartDate("");
-    setEndDate("");
+    setEndDate(maxAllowedDate);
     setcurrency("");
     setEmailError("");
     setStartDateError("");
@@ -224,7 +228,8 @@ const BankAccountList = () => {
 
     if (email) filters.push(`email: ${email}`);
     if (currency) filters.push(`currency: ${currency}`);
-    if (startDate) filters.push(`from ${dayjs(startDate).format("DD/MM/YYYY")}`);
+    if (startDate)
+      filters.push(`from ${dayjs(startDate).format("DD/MM/YYYY")}`);
     if (endDate) filters.push(`to ${dayjs(endDate).format("DD/MM/YYYY")}`);
 
     if (filters.length > 0) {
@@ -237,7 +242,7 @@ const BankAccountList = () => {
   // NEW EXPORT FUNCTIONALITY
   const fetchExportData = async () => {
     if (!validateForm()) return;
-    
+
     setExporting(true);
     try {
       const params = {
@@ -269,7 +274,7 @@ const BankAccountList = () => {
         // Create filename with timestamp
         const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
         const fileName = `bank_accounts_${timestamp}`;
-        
+
         // Flatten accounts for CSV
         const flattenedAccounts = accounts.map((account) => ({
           id: account.id,
@@ -302,20 +307,24 @@ const BankAccountList = () => {
         const escapeField = (field) => {
           if (field == null) return "";
           const str = String(field);
-          return str.includes(",") || str.includes('"') || str.includes("\n") 
-            ? `"${str.replace(/"/g, '""')}"` 
+          return str.includes(",") || str.includes('"') || str.includes("\n")
+            ? `"${str.replace(/"/g, '""')}"`
             : str;
         };
 
         // Generate CSV content
-        const headerRow = columns.map(col => escapeField(col.title)).join(",");
-        const dataRows = flattenedAccounts.map(account => 
-          columns.map(col => escapeField(account[col.id])).join(",")
+        const headerRow = columns
+          .map((col) => escapeField(col.title))
+          .join(",");
+        const dataRows = flattenedAccounts.map((account) =>
+          columns.map((col) => escapeField(account[col.id])).join(",")
         );
-        
+
         const csvContent = [headerRow, ...dataRows].join("\n");
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-        
+        const blob = new Blob([csvContent], {
+          type: "text/csv;charset=utf-8;",
+        });
+
         // Trigger download
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
@@ -369,46 +378,6 @@ const BankAccountList = () => {
                         />
                       </div>
                       <div className="col-md-3">
-                        <TextField
-                          label="Start Date"
-                          type="date"
-                          InputLabelProps={{ shrink: true }}
-                          value={startDate}
-                          onChange={(e) => {
-                            setStartDate(e.target.value);
-                            if (startDateError) setStartDateError("");
-                          }}
-                          inputProps={{
-                            min: minAllowedDate,
-                            max: maxAllowedDate
-                          }}
-                          error={!!startDateError}
-                          helperText={startDateError}
-                          fullWidth
-                          size="small"
-                        />
-                      </div>
-                      <div className="col-md-3">
-                        <TextField
-                          label="End Date"
-                          type="date"
-                          InputLabelProps={{ shrink: true }}
-                          value={endDate}
-                          onChange={(e) => {
-                            setEndDate(e.target.value);
-                            if (endDateError) setEndDateError("");
-                          }}
-                          inputProps={{
-                            min: minAllowedDate,
-                            max: maxAllowedDate
-                          }}
-                          error={!!endDateError}
-                          helperText={endDateError}
-                          fullWidth
-                          size="small"
-                        />
-                      </div>
-                      <div className="col-md-3">
                         <FormControl fullWidth size="small">
                           <InputLabel id="currency-label">Currency</InputLabel>
                           <Select
@@ -426,6 +395,49 @@ const BankAccountList = () => {
                           </Select>
                         </FormControl>
                       </div>
+                      <div className="col-md-3">
+                        <TextField
+                          label="Start Date"
+                          type="date"
+                          InputLabelProps={{ shrink: true }}
+                          value={startDate}
+                          onChange={(e) => {
+                            setStartDate(e.target.value);
+                            if (startDateError) setStartDateError("");
+                          }}
+                          inputProps={{
+                            min: minAllowedDate,
+                            max: maxAllowedDate,
+                          }}
+                          error={!!startDateError}
+                          helperText={startDateError}
+                          fullWidth
+                          size="small"
+                        />
+                      </div>
+
+                      <div className="col-md-3">
+                        <TextField
+                          label="End Date"
+                          type="date"
+                          InputLabelProps={{ shrink: true }}
+                          value={endDate}
+                          onChange={(e) => {
+                            setEndDate(e.target.value);
+                            if (endDateError) setEndDateError("");
+                          }}
+                          inputProps={{
+                            min: startDate || minAllowedDate,
+                            max: maxAllowedDate,
+                          }}
+                          disabled={!startDate}
+                          error={!!endDateError}
+                          helperText={endDateError}
+                          fullWidth
+                          size="small"
+                        />
+                      </div>
+
                       <div className="col-md-2 d-flex align-items-end">
                         <Button
                           variant="contained"
@@ -471,9 +483,7 @@ const BankAccountList = () => {
                 <div className="card-body">
                   <div className="overflow-auto">
                     {transactions.length === 0 ? (
-                      <div className="text-center">
-                        {getNoDataMessage()}
-                      </div>
+                      <div className="text-center">{getNoDataMessage()}</div>
                     ) : (
                       <>
                         <table className="table">

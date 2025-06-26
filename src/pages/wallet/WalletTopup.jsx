@@ -36,7 +36,7 @@ const WalletTopup = () => {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState("");
   const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [endDate, setEndDate] = useState(maxAllowedDate);
   const [pagination, setPagination] = useState({
     current_page: 1,
     total_pages: 1,
@@ -193,7 +193,7 @@ const WalletTopup = () => {
     setEmail("");
     setStatus("");
     setStartDate("");
-    setEndDate("");
+    setEndDate(maxAllowedDate);
     setEmailError("");
     setStartDateError("");
     setEndDateError("");
@@ -432,9 +432,10 @@ const WalletTopup = () => {
                             if (endDateError) setEndDateError("");
                           }}
                           inputProps={{
-                            min: minAllowedDate,
+                            min: startDate || minAllowedDate,
                             max: maxAllowedDate
                           }}
+                          disabled={!startDate}
                           error={!!endDateError}
                           helperText={endDateError}
                           fullWidth

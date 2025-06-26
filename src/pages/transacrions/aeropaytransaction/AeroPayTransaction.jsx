@@ -32,7 +32,6 @@ const AeroPayTransaction = () => {
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
   const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
   const [pagination, setPagination] = useState({
     current_page: 1,
     total_pages: 1,
@@ -51,6 +50,8 @@ const AeroPayTransaction = () => {
   // Define date constraints
   const today = dayjs().format("YYYY-MM-DD");
   const minDate = "0000-01-01";
+
+   const [endDate, setEndDate] = useState(today);
 
 const getData = async (page = 1, pageSize = resultsPerPage) => {
     setLoading(true);
@@ -182,7 +183,7 @@ const getData = async (page = 1, pageSize = resultsPerPage) => {
     setEmail("");
     setMobile("");
     setStartDate("");
-    setEndDate("");
+    setEndDate(today);
     setEmailError("");
     setMobileError("");
     setDateError("");
@@ -417,9 +418,10 @@ const getData = async (page = 1, pageSize = resultsPerPage) => {
                           fullWidth
                           size="small"
                           inputProps={{
-                            min: minDate,
+                            min: startDate || minDate,
                             max: today,
                           }}
+                          disabled={!startDate}
                         />
                       </div>
                       <div className="col-md-2 d-flex align-items-end">

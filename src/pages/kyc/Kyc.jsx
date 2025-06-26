@@ -43,7 +43,6 @@ const Kyc = () => {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState("");
   const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
 
   // Error states
   const [emailError, setEmailError] = useState("");
@@ -58,6 +57,9 @@ const Kyc = () => {
   // Date constraints
   const today = new Date().toISOString().split("T")[0];
   const minDate = "0000-01-01";
+
+  
+  const [endDate, setEndDate] = useState(today);
 
   useEffect(() => {
     if (token) {
@@ -142,7 +144,7 @@ const Kyc = () => {
     setEmail("");
     setStatus("");
     setStartDate("");
-    setEndDate("");
+    setEndDate(today);
     setEmailError("");
     setDateError("");
 
@@ -200,7 +202,6 @@ const Kyc = () => {
   };
 
   // Modal component
-
   function MyVerticallyCenteredModal(props) {
 
     const [message, setMessage] = useState("");
@@ -500,7 +501,7 @@ const Kyc = () => {
                             fullWidth
                             size="small"
                             inputProps={{
-                              min: startDate || minDate,
+                              min: startDate || minDate, 
                               max: today,
                             }}
                             disabled={!startDate}

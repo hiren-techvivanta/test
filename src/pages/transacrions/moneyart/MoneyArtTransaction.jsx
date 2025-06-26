@@ -33,7 +33,6 @@ const MoneyArtTransaction = () => {
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
   const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
   const [pagination, setPagination] = useState({
     current_page: 1,
     total_pages: 1,
@@ -54,6 +53,7 @@ const MoneyArtTransaction = () => {
 
   // Get today's date in YYYY-MM-DD format
   const today = dayjs().format("YYYY-MM-DD");
+   const [endDate, setEndDate] = useState(today);
 
   // Minimum allowed date (0000-01-01)
   const minDate = "0000-01-01";
@@ -189,7 +189,7 @@ const MoneyArtTransaction = () => {
     setEmail("");
     setMobile("");
     setStartDate("");
-    setEndDate("");
+    setEndDate(today);
     setEmailError("");
     setMobileError("");
     setDateError("");
@@ -434,9 +434,10 @@ const MoneyArtTransaction = () => {
                           fullWidth
                           size="small"
                           inputProps={{
-                            min: minDate,
+                            min: startDate || minDate,
                             max: today,
                           }}
+                          disabled={!startDate}
                         />
                       </div>
                       <div className="col-md-2 d-flex align-items-end">

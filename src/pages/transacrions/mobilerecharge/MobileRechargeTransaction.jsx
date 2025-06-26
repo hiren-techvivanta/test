@@ -33,7 +33,6 @@ const MobileRechargeTransaction = () => {
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
   const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
   const [transactions, setTransactions] = useState([]);
   const [pagination, setPagination] = useState({
     current_page: 1,
@@ -55,6 +54,8 @@ const MobileRechargeTransaction = () => {
   // Date validation parameters
   const MIN_DATE = "0000-01-01";
   const today = dayjs().format("YYYY-MM-DD");
+  
+  const [endDate, setEndDate] = useState(today);
 
   const getData = async (page = 1, pageSize = resultsPerPage) => {
     try {
@@ -178,7 +179,7 @@ const MobileRechargeTransaction = () => {
     setEmail("");
     setMobile("");
     setStartDate("");
-    setEndDate("");
+    setEndDate(today);
     setEmailError("");
     setMobileError("");
     setDateError("");
@@ -412,9 +413,10 @@ const MobileRechargeTransaction = () => {
                             if (dateError) setDateError("");
                           }}
                           inputProps={{ 
-                            min: MIN_DATE,
+                            min: startDate || MIN_DATE,
                             max: today
                           }}
+                          disabled={!startDate}
                           error={!!dateError}
                           helperText={dateError}
                           fullWidth

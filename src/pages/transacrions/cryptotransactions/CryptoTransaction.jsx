@@ -42,7 +42,7 @@ const CryptoTransaction = () => {
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
   const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [endDate, setEndDate] = useState(maxAllowedDate);
   const [open, setOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [resetTrigger, setResetTrigger] = useState(false);
@@ -195,7 +195,7 @@ const CryptoTransaction = () => {
     setEmail("");
     setMobile("");
     setStartDate("");
-    setEndDate("");
+    setEndDate(maxAllowedDate);
     setEmailError("");
     setMobileError("");
     setStartDateError("");
@@ -421,9 +421,10 @@ const CryptoTransaction = () => {
                             if (endDateError) setEndDateError("");
                           }}
                           inputProps={{
-                            min: minAllowedDate,
+                            min: startDate || minAllowedDate,
                             max: maxAllowedDate
                           }}
+                          disabled={!startDate}
                           error={!!endDateError}
                           helperText={endDateError}
                           fullWidth
