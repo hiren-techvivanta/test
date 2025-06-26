@@ -19,6 +19,7 @@ import {
   TableCell,
   TableRow,
   Switch,
+  TableHead,
 } from "@mui/material";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import DeleteForeverRoundedIcon from "@mui/icons-material/DeleteForeverRounded";
@@ -302,7 +303,7 @@ const UserList = () => {
         // Create filename with timestamp
         const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
         const fileName = `wave_money_${timestamp}_user_list`;
-        
+
         // Flatten nested objects for CSV
         const flattenedUsers = data.data.users.map((user) => ({
           sr_no: user.sr_no,
@@ -361,20 +362,24 @@ const UserList = () => {
         const escapeField = (field) => {
           if (field == null) return "";
           const str = String(field);
-          return str.includes(",") || str.includes('"') || str.includes("\n") 
-            ? `"${str.replace(/"/g, '""')}"` 
+          return str.includes(",") || str.includes('"') || str.includes("\n")
+            ? `"${str.replace(/"/g, '""')}"`
             : str;
         };
 
         // Generate CSV content
-        const headerRow = columns.map(col => escapeField(col.title)).join(",");
-        const dataRows = flattenedUsers.map(user => 
-          columns.map(col => escapeField(user[col.id])).join(",")
+        const headerRow = columns
+          .map((col) => escapeField(col.title))
+          .join(",");
+        const dataRows = flattenedUsers.map((user) =>
+          columns.map((col) => escapeField(user[col.id])).join(",")
         );
-        
+
         const csvContent = [headerRow, ...dataRows].join("\n");
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-        
+        const blob = new Blob([csvContent], {
+          type: "text/csv;charset=utf-8;",
+        });
+
         // Trigger download
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
@@ -667,12 +672,11 @@ const UserList = () => {
                 {Object.entries(selectedUser).map(([key, value]) => {
                   let displayValue;
 
-                  // Format country string like: Country(countryCode: IN, name: India)
+                  // Format country string
                   if (key === "country" && typeof value === "string") {
                     const match = value.match(/name:\s?([^)]+)/);
                     displayValue = match ? match[1] : value;
                   }
-
                   // Format boolean values
                   else if (typeof value === "boolean") {
                     displayValue = (
@@ -683,7 +687,6 @@ const UserList = () => {
                       />
                     );
                   }
-
                   // Format date values
                   else if (
                     typeof value === "string" &&
@@ -693,7 +696,6 @@ const UserList = () => {
                       ? dayjs(value).format("DD/MM/YYYY hh:mm A")
                       : "-";
                   }
-
                   // Handle crypto_balances specifically
                   else if (
                     key === "crypto_balances" &&
@@ -714,7 +716,40 @@ const UserList = () => {
                       </Table>
                     );
                   }
-
+                  // Handle wallet_addresses specifically
+                  else if (
+                    key === "wallet_addresses" &&
+                    typeof value === "object"
+                  ) {
+                    displayValue = (
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Coin</TableCell>
+                            <TableCell>Address</TableCell>
+                            <TableCell>Created At</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {Object.entries(value).map(([coin, details]) => (
+                            <TableRow key={coin}>
+                              <TableCell>{coin.toUpperCase()}</TableCell>
+                              <TableCell style={{ wordBreak: "break-all" }}>
+                                {details.address || "-"}
+                              </TableCell>
+                              <TableCell>
+                                {details.created_at
+                                  ? dayjs(details.created_at).format(
+                                      "DD/MM/YYYY hh:mm A"
+                                    )
+                                  : "-"}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    );
+                  }
                   // Handle all other nested objects
                   else if (typeof value === "object" && value !== null) {
                     displayValue = (
@@ -751,7 +786,6 @@ const UserList = () => {
                       </Table>
                     );
                   }
-
                   // Default case: show plain values
                   else {
                     displayValue = value || "-";
