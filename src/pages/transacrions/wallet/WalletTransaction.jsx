@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import SideNav from "../../../components/SideNav";
+import TopNav from "../../../components/TopNav";
 import {
   IconButton,
   Tooltip,
@@ -17,17 +18,15 @@ import {
   TextField,
   Button,
   CircularProgress,
-  TableContainer,
-  Paper,
-  TableHead,
-  TablePagination,
-  FormHelperText,
+  Chip,
   Box,
   Typography,
-  DialogContentText,
   Pagination,
+  Modal,
 } from "@mui/material";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import FilterListIcon from "@mui/icons-material/FilterList";
 import axios from "axios";
 import Cookies from "js-cookie";
 import dayjs from "dayjs";
@@ -36,9 +35,18 @@ const WalletTransaction = () => {
   // State management
   const [resultsPerPage, setResultsPerPage] = useState(10);
   const [transactions, setTransactions] = useState([]);
-  const [email, setEmail] = useState("");
-  const [transactionType, setTransactionType] = useState("");
-  const [startDate, setStartDate] = useState("");
+  const [filters, setFilters] = useState({
+    email: "",
+    transaction_type: "",
+    start_date: "",
+    end_date: "",
+  });
+  const [appliedFilters, setAppliedFilters] = useState({
+    email: "",
+    transaction_type: "",
+    start_date: "",
+    end_date: "",
+  });
   const [pagination, setPagination] = useState({
     current_page: 1,
     total_pages: 1,
@@ -46,6 +54,7 @@ const WalletTransaction = () => {
   });
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [openFilter, setOpenFilter] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [exporting, setExporting] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
@@ -54,24 +63,20 @@ const WalletTransaction = () => {
   const token = Cookies.get("authToken");
   const today = dayjs().format("YYYY-MM-DD");
   const minDate = "1970-01-01";
-  const [endDate, setEndDate] = useState(today);
 
   // Fetch transaction data
   const getData = async (page = 1, pageSize = resultsPerPage) => {
     setLoading(true);
     try {
       const params = {
-        email: email || undefined,
-        transaction_type: transactionType || undefined,
-        start_date: startDate || undefined,
-        end_date: endDate || undefined,
+        ...appliedFilters,
         page,
         page_size: pageSize,
       };
 
       // Clean undefined parameters
       Object.keys(params).forEach(
-        (key) => params[key] === undefined && delete params[key]
+        (key) => params[key] === "" && delete params[key]
       );
 
       const res = await axios.get(
@@ -101,14 +106,14 @@ const WalletTransaction = () => {
   // Initial data load
   useEffect(() => {
     if (token) getData();
-  }, [token]);
+  }, [token, appliedFilters, resultsPerPage]);
 
   // Validate form inputs
   const validateForm = () => {
     const errors = {};
 
     // Email validation
-    const trimmedEmail = email.trim();
+    const trimmedEmail = filters.email.trim();
     if (
       trimmedEmail &&
       !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(trimmedEmail)
@@ -117,30 +122,30 @@ const WalletTransaction = () => {
     }
 
     // Date validation
-    const start = dayjs(startDate);
-    const end = dayjs(endDate);
+    const start = dayjs(filters.start_date);
+    const end = dayjs(filters.end_date);
 
-    if (startDate && start.isAfter(dayjs())) {
+    if (filters.start_date && start.isAfter(dayjs())) {
       errors.date = "Start date cannot be in the future";
     }
 
-    if (endDate && end.isAfter(dayjs())) {
+    if (filters.end_date && end.isAfter(dayjs())) {
       errors.date = "End date cannot be in the future";
     }
 
-    if (startDate && start.isBefore(dayjs(minDate))) {
+    if (filters.start_date && start.isBefore(dayjs(minDate))) {
       errors.date = `Start date must be after ${dayjs(minDate).format(
         "DD/MM/YYYY"
       )}`;
     }
 
-    if (endDate && end.isBefore(dayjs(minDate))) {
+    if (filters.end_date && end.isBefore(dayjs(minDate))) {
       errors.date = `End date must be after ${dayjs(minDate).format(
         "DD/MM/YYYY"
       )}`;
     }
 
-    if (startDate && endDate && start.isAfter(end)) {
+    if (filters.start_date && filters.end_date && start.isAfter(end)) {
       errors.date = "End date must be after start date";
     }
 
@@ -148,35 +153,42 @@ const WalletTransaction = () => {
     return Object.keys(errors).length === 0;
   };
 
-  // Handle form submission
-  const handleFilterSubmit = (e) => {
-    e.preventDefault();
+  // Apply filters
+  const applyFilters = () => {
     if (validateForm()) {
-      getData(1);
+      setAppliedFilters({ ...filters });
+      setPagination((prev) => ({ ...prev, current_page: 1 }));
+      handleCloseFilter();
     }
   };
 
   // Reset filters
   const resetFilters = () => {
-    setEmail("");
-    setTransactionType("");
-    setStartDate("");
-    setEndDate(today);
+    setFilters({
+      email: "",
+      transaction_type: "",
+      start_date: "",
+      end_date: today,
+    });
+    setAppliedFilters({
+      email: "",
+      transaction_type: "",
+      start_date: "",
+      end_date: today,
+    });
     setValidationErrors({});
-    getData(1);
   };
 
   // Handle page change
-  const handlePageChange = (newPage) => {
-    setPagination((prev) => ({ ...prev, current_page: newPage }));
-    getData(newPage, resultsPerPage);
+  const handlePageChange = (event, page) => {
+    setPagination((prev) => ({ ...prev, current_page: page }));
   };
 
   // Handle rows per page change
   const handleRowsPerPageChange = (e) => {
     const newSize = parseInt(e.target.value, 10);
     setResultsPerPage(newSize);
-    getData(1, newSize);
+    setPagination((prev) => ({ ...prev, current_page: 1 }));
   };
 
   // View transaction details
@@ -195,36 +207,59 @@ const WalletTransaction = () => {
 
   // Get no data message
   const getNoDataMessage = () => {
-    if (!email && !transactionType && !startDate && !endDate) {
+    if (
+      !appliedFilters.email &&
+      !appliedFilters.transaction_type &&
+      !appliedFilters.start_date &&
+      !appliedFilters.end_date
+    ) {
       return "No transactions found";
     }
 
-    const filters = [];
-    if (email) filters.push(`email: ${email}`);
-    if (transactionType) filters.push(`type: ${transactionType}`);
-    if (startDate)
-      filters.push(`from ${dayjs(startDate).format("DD/MM/YYYY")}`);
-    if (endDate) filters.push(`to ${dayjs(endDate).format("DD/MM/YYYY")}`);
+    const filterLabels = [];
+    if (appliedFilters.email)
+      filterLabels.push(`email: ${appliedFilters.email}`);
+    if (appliedFilters.transaction_type)
+      filterLabels.push(`type: ${appliedFilters.transaction_type}`);
+    if (appliedFilters.start_date)
+      filterLabels.push(
+        `from ${dayjs(appliedFilters.start_date).format("DD/MM/YYYY")}`
+      );
+    if (appliedFilters.end_date)
+      filterLabels.push(
+        `to ${dayjs(appliedFilters.end_date).format("DD/MM/YYYY")}`
+      );
 
-    return `No transactions found with ${filters.join(" and ")}`;
+    return `No transactions found with ${filterLabels.join(", ")}`;
   };
+
+  // Handle filter change
+  const handleFilterChange = (name, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    // Clear errors when field changes
+    if (name === "email")
+      setValidationErrors((prev) => ({ ...prev, email: "" }));
+    if (name === "start_date" || name === "end_date")
+      setValidationErrors((prev) => ({ ...prev, date: "" }));
+  };
+
+  // Open/close filter modal
+  const handleOpenFilter = () => setOpenFilter(true);
+  const handleCloseFilter = () => setOpenFilter(false);
 
   // Export data to CSV
   const fetchExportData = async () => {
-    if (!validateForm()) return;
-
     setExporting(true);
     try {
-      const params = {
-        email: email || undefined,
-        transaction_type: transactionType || undefined,
-        start_date: startDate || undefined,
-        end_date: endDate || undefined,
-      };
+      const params = { ...appliedFilters };
 
       // Clean undefined parameters
       Object.keys(params).forEach(
-        (key) => params[key] === undefined && delete params[key]
+        (key) => params[key] === "" && delete params[key]
       );
 
       const res = await axios.get(
@@ -294,211 +329,154 @@ const WalletTransaction = () => {
   };
 
   return (
-    <div className="container py-5 mb-lg-4 ">
-      <div className="row pt-sm-2 pt-lg-0">
-        <SideNav />
-
-        <div className="col-lg-9 pt-4 pb-2 pb-sm-4">
-          <div className="d-sm-flex align-items-center mb-4">
-            <h1 className="h2 mb-4 mb-sm-0 me-4">Wallet Transaction List</h1>
+    <>
+      <div className="container-fluid p-0">
+        <TopNav />
+        <div className="row m-0">
+          <div
+            className="col-3 p-0"
+            style={{ maxHeight: "100%", overflowY: "auto" }}
+          >
+            <SideNav />
           </div>
+          <div className="col-9">
+            <div className="row m-0">
+              <div
+                className="col-12 py-3"
+                style={{ background: "#EEEEEE", minHeight: "93vh" }}
+              >
+                <div className="frame-1597880849">
+                  <div className="all-members-list">Wallet Transactions</div>
 
-          <div className="card shadow border-0">
-            <div className="card-body">
-              <form onSubmit={handleFilterSubmit}>
-                <div className="row g-3">
-                  <div className="col-md-3">
-                    <TextField
-                      label="Email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      error={!!validationErrors.email}
-                      helperText={validationErrors.email}
-                      fullWidth
-                      size="small"
-                    />
-                  </div>
-
-                  <div className="col-md-3">
-                    <FormControl fullWidth size="small">
-                      <InputLabel>Transaction Type</InputLabel>
-                      <Select
-                        value={transactionType}
-                        onChange={(e) => setTransactionType(e.target.value)}
-                        label="Transaction Type"
+                  <div className="frame-1597880735">
+                    <div className="frame-1597880734">
+                      <Button
+                        variant="contained"
+                        className="excel"
+                        sx={{ padding: "0 16px", height: "48px" }}
+                        onClick={fetchExportData}
+                        disabled={exporting}
                       >
-                        <MenuItem value="">All</MenuItem>
-                        <MenuItem value="credit">Credit</MenuItem>
-                        <MenuItem value="debit">Debit</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </div>
-
-                  <div className="col-md-3">
-                    <TextField
-                      label="Start Date"
-                      type="date"
-                      InputLabelProps={{ shrink: true }}
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      fullWidth
-                      size="small"
-                      inputProps={{
-                        min: minDate,
-                        max: today,
-                      }}
-                    />
-                  </div>
-
-                  <div className="col-md-3">
-                    <TextField
-                      label="End Date"
-                      type="date"
-                      InputLabelProps={{ shrink: true }}
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      fullWidth
-                      size="small"
-                      inputProps={{
-                        min: startDate || minDate,
-                        max: today,
-                      }}
-                      disabled={!startDate}
-                    />
-                  </div>
-
-                  {validationErrors.date && (
-                    <div className="col-12">
-                      <FormHelperText error>
-                        {validationErrors.date}
-                      </FormHelperText>
+                        {exporting ? (
+                          <CircularProgress size={24} color="inherit" />
+                        ) : (
+                          <>
+                            <FileDownloadIcon className="me-2" /> Export
+                          </>
+                        )}
+                      </Button>
                     </div>
-                  )}
 
-                  <div className="col-md-2 d-flex align-items-end">
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      type="submit"
-                      fullWidth
-                      disabled={loading}
-                    >
-                      Apply
-                    </Button>
-                  </div>
-
-                  <div className="col-md-2 d-flex align-items-end">
-                    <Button
-                      variant="outlined"
-                      color="light"
-                      onClick={resetFilters}
-                      fullWidth
-                      disabled={loading}
-                    >
-                      Reset
-                    </Button>
-                  </div>
-
-                  <div className="col-md-2 d-flex align-items-end">
-                    <Button
-                      variant="contained"
-                      className="w-100"
-                      color="success"
-                      onClick={fetchExportData}
-                      disabled={exporting || loading}
-                    >
-                      {exporting ? (
-                        <CircularProgress size={24} color="inherit" />
-                      ) : (
-                        "Export"
-                      )}
-                    </Button>
+                    <div className="frame-15978807352">
+                      <Button
+                        variant="contained"
+                        startIcon={<FilterListIcon />}
+                        className="filter"
+                        sx={{ padding: "0 16px", height: "48px" }}
+                        disableElevation
+                        onClick={handleOpenFilter}
+                      >
+                        Filter
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </form>
-            </div>
-          </div>
 
-          <div className="card shadow border-0 mt-3">
-            <div className="card-body">
-              <div className="overflow-auto">
-                {transactions.length === 0 && !loading ? (
-                  <h6 className="text-center">{getNoDataMessage()}</h6>
-                ) : (
-                  <>
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>#</th>
-                          <th>Date & Time</th>
-                          <th>User</th>
-                          <th>Email</th>
-                          <th>Type</th>
-                          <th>Amount</th>
-                          <th>Balance</th>
-                          <th>Remarks</th>
-                          <th>Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {loading ? (
-                          <tr>
-                            <td colSpan={9} className="text-center">
-                              <CircularProgress />
-                            </td>
+                <div className="card mw-100 mt-5 rounded-4 border-0">
+                  <div className="card-body">
+                    <div className="overflow-auto ">
+                      <table className="table table-responsive">
+                        <thead>
+                          <tr
+                            className="rounded-4"
+                            style={{ backgroundColor: "#EEEEEE" }}
+                          >
+                            <th>#</th>
+                            <th className="main-table">DATE & TIME</th>
+                            <th className="main-table">USER</th>
+                            <th className="main-table">EMAIL</th>
+                            <th className="main-table">TYPE</th>
+                            <th className="main-table">AMOUNT</th>
+                            <th className="main-table">BALANCE</th>
+                            <th className="main-table">REMARKS</th>
+                            <th className="main-table text-center">ACTION</th>
                           </tr>
-                        ) : (
-                          transactions.map((txn, idx) => (
-                            <tr key={txn.transaction_id}>
-                              <td>
-                                {(pagination.current_page - 1) *
-                                  resultsPerPage +
-                                  idx +
-                                  1}
-                              </td>
-                              <td>
-                                {dayjs(txn.created_at).format(
-                                  "DD/MM/YYYY hh:mm A"
-                                )}
-                              </td>
-                              
-                              <td>{txn.user_details?.full_name}</td>
-                                <td>{txn.user_details?.email}</td>
-                              <td>
-                                <span
-                                  className={`badge bg-${
-                                    txn.transaction_type === "credit"
-                                      ? "success"
-                                      : "danger"
-                                  }`}
-                                >
-                                  {txn.transaction_type}
-                                </span>
-                              </td>
-                              <td>$ {txn.amount}</td>
-                              <td>$ {txn.balance_after_transaction}</td>
-                              <td>{txn.remarks}</td>
-                              <td>
-                                <Tooltip title="View Details">
-                                  <IconButton
-                                    color="info"
-                                    onClick={() => handleViewDetails(txn)}
-                                  >
-                                    <VisibilityRoundedIcon />
-                                  </IconButton>
-                                </Tooltip>
+                        </thead>
+                        <tbody>
+                          {loading ? (
+                            <tr>
+                              <td colSpan={9} className="text-center py-5">
+                                <CircularProgress />
                               </td>
                             </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
+                          ) : transactions.length === 0 ? (
+                            <tr>
+                              <td colSpan={9} className="text-center py-5">
+                                {getNoDataMessage()}
+                              </td>
+                            </tr>
+                          ) : (
+                            transactions.map((txn, idx) => (
+                              <tr key={txn.transaction_id}>
+                                <td>
+                                  {(pagination.current_page - 1) *
+                                    resultsPerPage +
+                                    idx +
+                                    1}
+                                </td>
+                                <td className="main-table">
+                                  {dayjs(txn.created_at).format(
+                                    "DD/MM/YYYY hh:mm A"
+                                  )}
+                                </td>
+                                <td className="main-table">
+                                  {txn.user_details?.full_name}
+                                </td>
+                                <td className="main-table">
+                                  {txn.user_details?.email}
+                                </td>
+                                <td className="main-table">
+                                  <span
+                                    className={`badge bg-${
+                                      txn.transaction_type === "credit"
+                                        ? "success"
+                                        : "danger"
+                                    } py-2`}
+                                  >
+                                    {txn.transaction_type}
+                                  </span>
+                                </td>
+                                <td className="main-table">$ {txn.amount}</td>
+                                <td className="main-table">
+                                  $ {txn.balance_after_transaction}
+                                </td>
+                                <td className="main-table">{txn.remarks}</td>
+                                <td className="main-table">
+                                  <div className="d-flex justify-content-around">
+                                    <Tooltip title="View Details">
+                                      <IconButton
+                                        color="info"
+                                        onClick={() => handleViewDetails(txn)}
+                                      >
+                                        <VisibilityRoundedIcon />
+                                      </IconButton>
+                                    </Tooltip>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
 
-                    <div className="container-fluid mb-3">
-                      <div className="row">
-                        <div className="col-3">
+                    <div className="container-fluid mt-4 mb-3">
+                      <div className="row align-items-center">
+                        <div className="col-md-3">
                           <FormControl variant="standard" fullWidth>
-                            <InputLabel id="results-label">Results</InputLabel>
+                            <InputLabel id="results-label">
+                              Results per page
+                            </InputLabel>
                             <Select
                               labelId="results-label"
                               id="results-select"
@@ -512,119 +490,256 @@ const WalletTransaction = () => {
                             </Select>
                           </FormControl>
                         </div>
-                        <div className="col-9 d-flex justify-content-end">
+                        <div className="col-md-9 d-flex justify-content-end">
                           <Pagination
                             count={pagination.total_pages}
                             page={pagination.current_page}
-                            onChange={(event, page) => handlePageChange(page)}
+                            onChange={handlePageChange}
                             color="primary"
                           />
                         </div>
                       </div>
                     </div>
-                  </>
-                )}
-
-                <Dialog
-                  open={open}
-                  onClose={() => setOpen(false)}
-                  maxWidth="md"
-                  fullWidth
-                >
-                  <DialogTitle>Transaction Details</DialogTitle>
-                  <DialogContent sx={{ maxHeight: "80vh", overflow: "auto" }}>
-                    {selectedTransaction ? (
-                      <Table>
-                        <TableBody>
-                          <TableRow>
-                            <TableCell>
-                              <strong>Transaction ID</strong>
-                            </TableCell>
-                            <TableCell>
-                              {selectedTransaction.transaction_id}
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>
-                              <strong>Type</strong>
-                            </TableCell>
-                            <TableCell>
-                              {selectedTransaction.transaction_type}
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>
-                              <strong>Amount</strong>
-                            </TableCell>
-                            <TableCell>
-                              $ {selectedTransaction.amount}
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>
-                              <strong>Balance After</strong>
-                            </TableCell>
-                            <TableCell>
-                              $ {selectedTransaction.balance_after_transaction}
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>
-                              <strong>Remarks</strong>
-                            </TableCell>
-                            <TableCell>{selectedTransaction.remarks}</TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>
-                              <strong>Created At</strong>
-                            </TableCell>
-                            <TableCell>
-                              {dayjs(selectedTransaction.created_at).format(
-                                "DD/MM/YYYY hh:mm A"
-                              )}
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>
-                              <strong>User Email</strong>
-                            </TableCell>
-                            <TableCell>
-                              {selectedTransaction.user_details?.email || "N/A"}
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>
-                              <strong>User Phone</strong>
-                            </TableCell>
-                            <TableCell>
-                              {selectedTransaction.user_details?.phone_number ||
-                                "N/A"}
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>
-                              <strong>User Full Name</strong>
-                            </TableCell>
-                            <TableCell>
-                              {selectedTransaction.user_details?.full_name ||
-                                "N/A"}
-                            </TableCell>
-                          </TableRow>
-                        </TableBody>
-                      </Table>
-                    ) : (
-                      <DialogContentText>
-                        No transaction details available
-                      </DialogContentText>
-                    )}
-                  </DialogContent>
-                </Dialog>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Filter Modal */}
+      <Modal
+        open={openFilter}
+        onClose={handleCloseFilter}
+        aria-labelledby="filter-modal-title"
+        aria-describedby="filter-modal-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 700,
+            bgcolor: "#fff",
+            boxShadow: 24,
+            p: 3,
+            borderRadius: "12px",
+          }}
+        >
+          <Typography
+            id="filter-modal-title"
+            className="fw-semibold"
+            variant="h6"
+            component="h2"
+          >
+            Search Records
+          </Typography>
+          <hr />
+
+          <div className="row g-3 mt-3">
+            <div className="col-md-6">
+              <label className="form-label">Email</label>
+              <TextField
+                fullWidth
+                value={filters.email}
+                onChange={(e) => handleFilterChange("email", e.target.value)}
+                error={!!validationErrors.email}
+                helperText={validationErrors.email}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    backgroundColor: "#f5f5f5",
+                  },
+                }}
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Transaction Type</label>
+              <FormControl fullWidth>
+                <Select
+                  value={filters.transaction_type}
+                  onChange={(e) =>
+                    handleFilterChange("transaction_type", e.target.value)
+                  }
+                  sx={{
+                    "& .MuiSelect-select": {
+                      borderRadius: "12px",
+                      backgroundColor: "#f5f5f5",
+                    },
+                  }}
+                >
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="credit">Credit</MenuItem>
+                  <MenuItem value="debit">Debit</MenuItem>
+                </Select>
+              </FormControl>
+            </div>
+
+            <div className="col-md-6">
+              <label className="form-label">Start Date</label>
+              <TextField
+                fullWidth
+                type="date"
+                value={filters.start_date}
+                onChange={(e) =>
+                  handleFilterChange("start_date", e.target.value)
+                }
+                InputLabelProps={{ shrink: true }}
+                error={!!validationErrors.date}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    backgroundColor: "#f5f5f5",
+                  },
+                }}
+                inputProps={{
+                  min: minDate,
+                  max: today,
+                }}
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">End Date</label>
+              <TextField
+                fullWidth
+                type="date"
+                value={filters.end_date || today}
+                onChange={(e) => handleFilterChange("end_date", e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                error={!!validationErrors.date}
+                helperText={validationErrors.date || ``}
+                disabled={!filters.start_date}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    backgroundColor: "#f5f5f5",
+                  },
+                }}
+                inputProps={{
+                  min: filters.start_date || minDate,
+                  max: today,
+                }}
+              />
+            </div>
+            <div className="col-6">
+              <Button
+                variant="contained"
+                onClick={applyFilters}
+                className="me-2 w-100"
+                sx={{ height: "45px" }}
+              >
+                Apply
+              </Button>
+            </div>
+            <div className="col-6">
+              <Button
+                variant="outlined"
+                className="w-100"
+                onClick={() => {
+                  resetFilters();
+                  handleCloseFilter();
+                }}
+                sx={{ height: "45px" }}
+              >
+                Reset
+              </Button>
+            </div>
+          </div>
+        </Box>
+      </Modal>
+
+      {/* Transaction Details Dialog */}
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Transaction Details</DialogTitle>
+        <DialogContent style={{ maxHeight: "80vh", overflow: "auto" }}>
+          {selectedTransaction ? (
+            <Table>
+              <TableBody>
+                {Object.entries(selectedTransaction).map(([key, value]) => {
+                  // Skip user_details object - we'll handle it separately
+                  if (key === "user_details") return null;
+
+                  let displayValue = value;
+
+                  // Format date values
+                  if (
+                    typeof value === "string" &&
+                    (key.includes("date") || key.includes("_at"))
+                  ) {
+                    displayValue = value
+                      ? dayjs(value).format("DD/MM/YYYY hh:mm A")
+                      : "-";
+                  }
+                  // Handle user_details separately
+                  else if (
+                    key === "user_details" &&
+                    typeof value === "object"
+                  ) {
+                    displayValue = (
+                      <Table size="small">
+                        <TableBody>
+                          {Object.entries(value).map(([subKey, subVal]) => (
+                            <TableRow key={subKey}>
+                              <TableCell style={{ width: "30%" }}>
+                                <strong>{formatKey(subKey)}</strong>
+                              </TableCell>
+                              <TableCell>{subVal || "-"}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    );
+                  }
+
+                  return (
+                    <TableRow key={key}>
+                      <TableCell style={{ width: "30%" }}>
+                        <strong>{formatKey(key)}</strong>
+                      </TableCell>
+                      <TableCell>{displayValue || "-"}</TableCell>
+                    </TableRow>
+                  );
+                })}
+
+                {/* Special handling for user_details */}
+                {selectedTransaction.user_details && (
+                  <TableRow>
+                    <TableCell colSpan={2}>
+                      <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
+                        User Details
+                      </Typography>
+                      <Table size="small">
+                        <TableBody>
+                          {Object.entries(selectedTransaction.user_details).map(
+                            ([key, value]) => (
+                              <TableRow key={key}>
+                                <TableCell style={{ width: "30%" }}>
+                                  <strong>{formatKey(key)}</strong>
+                                </TableCell>
+                                <TableCell>{value || "-"}</TableCell>
+                              </TableRow>
+                            )
+                          )}
+                        </TableBody>
+                      </Table>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-center py-4">No transaction details available</p>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

@@ -9,18 +9,30 @@ import {
   MenuItem,
   TextField,
   Button,
+  CircularProgress,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  Table,
+  TableBody,
+  TableCell,
+  TableRow,
+  Box,
+  Modal,
+  Typography,
 } from "@mui/material";
-import DeleteForeverRoundedIcon from "@mui/icons-material/DeleteForeverRounded";
 import SideNav from "../../components/SideNav";
-import AddTaskIcon from "@mui/icons-material/AddTask";
-import { toast } from "react-toastify";
-import axios from "axios";
-import { Modal } from "react-bootstrap";
+import TopNav from "../../components/TopNav";
 import Loader from "../../components/Loader";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import Cookies from "js-cookie";
+import axios from "axios";
+import { toast } from "react-toastify";
+import dayjs from "dayjs";
+import FilterListIcon from "@mui/icons-material/FilterList";
 
 const Kyc = () => {
   // State variables
@@ -43,6 +55,8 @@ const Kyc = () => {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState("");
   const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState(dayjs().format("YYYY-MM-DD"));
+  const [openFilter, setOpenFilter] = useState(false);
 
   // Error states
   const [emailError, setEmailError] = useState("");
@@ -55,11 +69,8 @@ const Kyc = () => {
   const config = { headers: { Authorization: `Bearer ${token}` } };
 
   // Date constraints
-  const today = new Date().toISOString().split("T")[0];
+  const today = dayjs().format("YYYY-MM-DD");
   const minDate = "0000-01-01";
-
-  
-  const [endDate, setEndDate] = useState(today);
 
   useEffect(() => {
     if (token) {
@@ -89,10 +100,8 @@ const Kyc = () => {
   const validateFilters = () => {
     let isValid = true;
 
-   // Email validation
-    const trimmedEmail = email.trim(); 
-
     // Email validation
+    const trimmedEmail = email.trim();
     if (
       trimmedEmail &&
       !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(trimmedEmail)
@@ -105,21 +114,21 @@ const Kyc = () => {
 
     // Date validation
     if (startDate || endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      const todayDate = new Date();
-      const minAllowedDate = new Date(minDate);
+      const start = dayjs(startDate);
+      const end = dayjs(endDate);
+      const todayDate = dayjs();
+      const minAllowedDate = dayjs(minDate);
 
-      if (startDate && start > todayDate) {
+      if (startDate && start.isAfter(todayDate)) {
         setDateError("Start date cannot be in the future");
         isValid = false;
-      } else if (endDate && end > todayDate) {
+      } else if (endDate && end.isAfter(todayDate)) {
         setDateError("End date cannot be in the future");
         isValid = false;
-      } else if (startDate && endDate && start > end) {
+      } else if (startDate && endDate && start.isAfter(end)) {
         setDateError("End date cannot be before start date");
         isValid = false;
-      } else if (startDate && start < minAllowedDate) {
+      } else if (startDate && start.isBefore(minAllowedDate)) {
         setDateError(`Start date must be after ${minDate}`);
         isValid = false;
       } else {
@@ -130,13 +139,11 @@ const Kyc = () => {
     return isValid;
   };
 
-  const handleFilterSubmit = (e) => {
-    e.preventDefault();
-
+  const handleFilterSubmit = () => {
     if (validateFilters()) {
-      // Reset to first page when applying new filters
       setPagination((prev) => ({ ...prev, current_page: 1 }));
       getData(1);
+      setOpenFilter(false);
     }
   };
 
@@ -148,14 +155,13 @@ const Kyc = () => {
     setEmailError("");
     setDateError("");
 
-    // Reset pagination to first page
     setPagination((prev) => ({
       ...prev,
       current_page: 1,
     }));
 
-    // Trigger reset effect
     setResetTrigger((prev) => prev + 1);
+    setOpenFilter(false);
   };
 
   const getData = async (
@@ -183,29 +189,31 @@ const Kyc = () => {
 
       if (data.message === "KYC submissions retrieved successfully") {
         setKycSubmissions(data.data.kyc_submissions);
-        setPagination((prev) => ({
-          ...prev,
-          ...data.data.pagination,
-        }));
-        setLoading(false);
+        setPagination({
+          current_page: data.data.pagination.current_page,
+          total_pages: data.data.pagination.total_pages,
+          page_size: data.data.pagination.page_size,
+          total_kyc_submissions: data.data.pagination.total_count,
+          has_next: data.data.pagination.has_next,
+          has_previous: data.data.pagination.has_previous,
+        });
       }
     } catch (e) {
       toast.error(e.response?.data?.message || "Internal server error");
+    } finally {
       setLoading(false);
     }
   };
 
-  const handleUpdateStatus = (e, id) => {
-    e.preventDefault();
+  const handleViewDetails = (id) => {
     setId(id);
     setModalShow(true);
   };
 
   // Modal component
-  function MyVerticallyCenteredModal(props) {
-
+  function StatusUpdateModal(props) {
     const [message, setMessage] = useState("");
-    const [filterData, setFilterData] = useState({});
+    const [kycData, setKycData] = useState({});
     const [messageErr, setMessageErr] = useState("");
     const [loading, setLoading] = useState(false);
 
@@ -218,20 +226,17 @@ const Kyc = () => {
         return false;
       } else if (!pattern.test(message.trim())) {
         setMessageErr(
-          "Message should contain only letters, numbers, spaces, and basic punctuation (, . ' \" -)"
+          "Message should contain only letters, numbers, spaces, and basic punctuation"
         );
         return false;
       }
-
       return true;
     };
 
     const handleSubmit = async (e, status) => {
       e.preventDefault();
 
-      if (!validation()) {
-        return ;
-      }
+      if (!validation()) return;
 
       setLoading(true);
 
@@ -251,7 +256,7 @@ const Kyc = () => {
           setId("");
           getData(pagination.current_page);
           toast.success(data.message);
-          setModalShow(false);
+          props.onHide();
         }
       } catch (e) {
         toast.error(e.response?.data?.message || "Internal server error");
@@ -261,154 +266,165 @@ const Kyc = () => {
     };
 
     useEffect(() => {
-      if (modalShow === true && id !== "") {
+      if (props.show && id !== "") {
         const filteredData = kycSubmissions.filter((e) => e.id === id);
-        setFilterData(filteredData[0]);
+        setKycData(filteredData[0] || {});
       }
-    }, [modalShow, id, kycSubmissions]);
-
-    console.log(messageErr);
-    
+    }, [props.show, id]);
 
     return (
-      <Modal
-        {...props}
-        size="md"
-        aria-labelledby="contained-modal-title-vcenter"
-        centered
-      >
-        <Modal.Header closeButton>
-          <Modal.Title id="contained-modal-title-vcenter">
-            Update Status
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body className="px-2">
-          <div className="container-fluid">
+      <Dialog open={props.show} onClose={props.onHide} maxWidth="md" fullWidth>
+        <DialogTitle>Update KYC Status</DialogTitle>
+        <DialogContent style={{ maxHeight: "80vh", overflow: "auto" }}>
+          <div className="container-fluid p-0">
             <div className="row g-3">
               <div className="col-12">
                 <div className="overflow-auto">
-                  <table className="table">
-                    <tbody>
-                      <tr>
-                        <th>Name</th>
-                        <td>{filterData?.user_details?.full_name || "N/A"}</td>
-                      </tr>
-                      <tr>
-                        <th>Email</th>
-                        <td>{filterData?.user_details?.email || "N/A"}</td>
-                      </tr>
-                      <tr>
-                        <th>DOB</th>
-                        <td>{filterData?.date_of_birth || "N/A"}</td>
-                      </tr>
-                      <tr>
-                        <th>Mobile No.</th>
-                        <td>
-                          {filterData?.user_details?.phone_number || "N/A"}
-                        </td>
-                      </tr>
-                      <tr>
-                        <th>Address</th>
-                        <td>
-                          {filterData?.residential_address
-                            ? `${filterData.residential_address.line1}, 
-                             ${filterData.residential_address.line2 || ""}, 
-                             ${filterData.residential_address.street || ""}, 
-                             ${filterData.residential_address.city}, 
-                             ${filterData.residential_address.state}, 
-                             ${filterData.residential_address.country} - 
-                             ${filterData.residential_address.postal_code}`
+                  <Table>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>
+                          <strong>Name</strong>
+                        </TableCell>
+                        <TableCell>
+                          {kycData?.user_details?.full_name || "N/A"}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>
+                          <strong>Email</strong>
+                        </TableCell>
+                        <TableCell>
+                          {kycData?.user_details?.email || "N/A"}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>
+                          <strong>DOB</strong>
+                        </TableCell>
+                        <TableCell>{kycData?.date_of_birth || "N/A"}</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>
+                          <strong>Mobile No.</strong>
+                        </TableCell>
+                        <TableCell>
+                          {kycData?.user_details?.phone_number || "N/A"}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>
+                          <strong>Address</strong>
+                        </TableCell>
+                        <TableCell>
+                          {kycData?.residential_address
+                            ? `${kycData.residential_address.line1}, 
+                             ${kycData.residential_address.line2 || ""}, 
+                             ${kycData.residential_address.street || ""}, 
+                             ${kycData.residential_address.city}, 
+                             ${kycData.residential_address.state}, 
+                             ${kycData.residential_address.country} - 
+                             ${kycData.residential_address.postal_code}`
                             : "N/A"}
-                        </td>
-                      </tr>
-                      <tr>
-                        <th>Document No.</th>
-                        <td>{filterData?.document_number || "N/A"}</td>
-                      </tr>
-                    </tbody>
-                  </table>
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>
+                          <strong>Document No.</strong>
+                        </TableCell>
+                        <TableCell>
+                          {kycData?.document_number || "N/A"}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
                 </div>
               </div>
 
               <div className="col-12">
-                {filterData?.document_image && (
+                {kycData?.document_image && (
                   <img
-                    src={`https://uatwavemoney.onewave.app${filterData.document_image}`}
-                    className="img-fluid"
+                    src={`${process.env.REACT_APP_BACKEND_URL}${kycData.document_image}`}
+                    className="img-fluid rounded"
                     alt="Document"
+                    style={{ maxHeight: "300px" }}
                   />
                 )}
               </div>
 
-              {filterData?.document_back && (
+              {kycData?.document_back && (
                 <div className="col-12">
                   <img
-                    src={`https://uatwavemoney.onewave.app${filterData.document_back}`}
-                    className="img-fluid mt-2"
+                    src={`${process.env.REACT_APP_BACKEND_URL}${kycData.document_back}`}
+                    className="img-fluid rounded mt-2"
                     alt="Document Back"
+                    style={{ maxHeight: "300px" }}
                   />
                 </div>
               )}
 
               <div className="col-12">
-                {filterData?.admin_message && (
-                  <p className="text-black-50 m-0">
-                    <span className="text-black">Admin message : </span>
-                    {filterData.admin_message}
+                {kycData?.admin_message && (
+                  <p className="text-muted">
+                    <span className="text-dark fw-bold">Admin message: </span>
+                    {kycData.admin_message}
                   </p>
                 )}
               </div>
 
               <div className="col-12">
-                {filterData?.status === "Pending" && (
+                {kycData?.status === "Pending" && (
                   <form>
                     <div className="row g-3">
                       <div className="col-12">
-                        <label className="form-label">Message</label>
-                        <input
-                          type="text"
-                          className={`form-control ${
-                            messageErr ? "is-invalid" : ""
-                          }`}
-                          placeholder="Enter Your Message"
+                        <label>Message</label>
+                        <TextField
+                          fullWidth
                           value={message}
                           onChange={(e) => setMessage(e.target.value)}
+                          error={!!messageErr}
+                          helperText={messageErr}
+                          multiline
+                          rows={3}
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              borderRadius: "12px",
+                              backgroundColor: "#f5f5f5",
+                            },
+                          }}
                         />
-                        {messageErr && (
-                          <div className="invalid-feedback">{messageErr}</div>
-                        )}
                       </div>
                       <div className="col-12 d-flex justify-content-around">
-                        <button
-                          className="btn btn-success"
+                        <Button
+                          variant="contained"
+                          color="success"
                           onClick={(e) => handleSubmit(e, "Approved")}
                           disabled={loading}
+                          startIcon={
+                            loading ? (
+                              <CircularProgress size={20} color="inherit" />
+                            ) : (
+                              <AddRoundedIcon />
+                            )
+                          }
                         >
-                          {loading ? (
-                            <span
-                              className="spinner-border spinner-border-sm me-2"
-                              role="status"
-                            />
-                          ) : (
-                            <AddRoundedIcon className="me-1" />
-                          )}
                           Approve
-                        </button>
-                        <button
-                          className="btn btn-danger"
+                        </Button>
+                        <Button
+                          variant="contained"
+                          color="error"
                           onClick={(e) => handleSubmit(e, "Rejected")}
                           disabled={loading}
+                          startIcon={
+                            loading ? (
+                              <CircularProgress size={20} color="inherit" />
+                            ) : (
+                              <CloseRoundedIcon />
+                            )
+                          }
                         >
-                          {loading ? (
-                            <span
-                              className="spinner-border spinner-border-sm me-2"
-                              role="status"
-                            />
-                          ) : (
-                            <CloseRoundedIcon className="me-1" />
-                          )}
                           Reject
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </form>
@@ -416,225 +432,175 @@ const Kyc = () => {
               </div>
             </div>
           </div>
-        </Modal.Body>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     );
   }
 
+  const getNoDataMessage = () => {
+    if (!email && !status && !startDate && !endDate) {
+      return "No KYC submissions found";
+    }
+
+    let message = "No submissions found";
+    const filterLabels = [];
+
+    if (email) filterLabels.push(`email: ${email}`);
+    if (status) filterLabels.push(`status: ${status}`);
+    if (startDate)
+      filterLabels.push(`from ${dayjs(startDate).format("DD/MM/YYYY")}`);
+    if (endDate) filterLabels.push(`to ${dayjs(endDate).format("DD/MM/YYYY")}`);
+
+    if (filterLabels.length > 0) {
+      message += ` with ${filterLabels.join(", ")}`;
+    }
+
+    return message;
+  };
+
   return (
     <>
-      {loading ? (
-        <Loader />
-      ) : (
-        <>
-          <div className="container py-5 mb-lg-4 ">
-            <div className="row pt-sm-2 pt-lg-0">
-              <SideNav />
+      <div className="container-fluid p-0">
+        <TopNav />
+        <div className="row m-0">
+          <div
+            className="col-3 p-0"
+            style={{ maxHeight: "100%", overflowY: "auto" }}
+          >
+            <SideNav />
+          </div>
+          <div className="col-9">
+            <div className="row m-0">
+              <div
+                className="col-12 py-3"
+                style={{ background: "#EEEEEE", minHeight: "93vh" }}
+              >
+                <div className="frame-1597880849">
+                  <div className="all-members-list">Users KYC List</div>
 
-              <div className="col-lg-9 pt-4 pb-2 pb-sm-4">
-                <div className="d-sm-flex align-items-center mb-4">
-                  <h1 className="h2 mb-4 mb-sm-0 me-4">Users KYC List</h1>
-                </div>
-
-                {/* Filter Card */}
-                <div className="card shadow border-0">
-                  <div className="card-body">
-                    <form onSubmit={handleFilterSubmit} className="">
-                      <div className="row g-3">
-                        {/* Email Filter */}
-                        <div className="col-md-3">
-                          <TextField
-                            label="Email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            error={!!emailError}
-                            helperText={emailError}
-                            fullWidth
-                            size="small"
-                          />
-                        </div>
-
-                        {/* Status Filter */}
-                        <div className="col-md-3">
-                          <FormControl fullWidth size="small">
-                            <InputLabel>Status</InputLabel>
-                            <Select
-                              value={status}
-                              onChange={(e) => setStatus(e.target.value)}
-                              label="Status"
-                            >
-                              <MenuItem value="">All</MenuItem>
-                              <MenuItem value="Pending">Pending</MenuItem>
-                              <MenuItem value="Approved">Approved</MenuItem>
-                              <MenuItem value="Rejected">Rejected</MenuItem>
-                            </Select>
-                          </FormControl>
-                        </div>
-
-                        {/* Start Date Filter */}
-                        <div className="col-md-3">
-                          <TextField
-                            label="Start Date"
-                            type="date"
-                            InputLabelProps={{ shrink: true }}
-                            value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
-                            fullWidth
-                            size="small"
-                            inputProps={{
-                              min: minDate,
-                              max: today,
-                            }}
-                          />
-                        </div>
-
-                        {/* End Date Filter */}
-                        <div className="col-md-3">
-                          <TextField
-                            label="End Date"
-                            type="date"
-                            InputLabelProps={{ shrink: true }}
-                            value={endDate}
-                            onChange={(e) => setEndDate(e.target.value)}
-                            error={!!dateError}
-                            helperText={dateError}
-                            fullWidth
-                            size="small"
-                            inputProps={{
-                              min: startDate || minDate, 
-                              max: today,
-                            }}
-                            disabled={!startDate}
-                          />
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="col-md-2 d-flex align-items-end">
-                          <Button
-                            variant="contained"
-                            color="primary"
-                            type="submit"
-                            fullWidth
-                          >
-                            Apply
-                          </Button>
-                        </div>
-                        <div className="col-md-2 d-flex align-items-end">
-                          <Button
-                            variant="outlined"
-                            color="light"
-                            onClick={resetFilters}
-                            fullWidth
-                          >
-                            Reset
-                          </Button>
-                        </div>
-                      </div>
-                    </form>
+                  <div className="frame-1597880735">
+                    <div className="frame-15978807352">
+                      <Button
+                        variant="contained"
+                        startIcon={<FilterListIcon />}
+                        className="filter"
+                        sx={{ padding: "0 16px", height: "48px" }}
+                        disableElevation
+                        onClick={() => setOpenFilter(true)}
+                      >
+                        Filter
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
-                {/* Data Table Card */}
-                <div className="card shadow border-0 mt-3">
+                <div className="card mw-100 mt-5 rounded-4 border-0">
                   <div className="card-body">
-                    <div className="row g-3 g-xl-4">
-                      <div className="col-12">
-                        <div className="overflow-auto">
-                          {kycSubmissions.length === 0 ? (
-                            <h5 className="text-center">No Data Found</h5>
-                          ) : (
-                            <>
-                              <table className="table">
-                                <thead>
-                                  <tr>
-                                    <th>#</th>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Mobile</th>
-                                    <th>Status</th>
-                                    <th className="text-center">Action</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {kycSubmissions.map((val, index) => (
-                                    <tr key={val.id}>
-                                      <td>
-                                        {index +
-                                          1 +
-                                          (pagination.current_page - 1) *
-                                            pagination.page_size}
-                                      </td>
-                                      <td>
-                                        {val.user_details?.full_name || "N/A"}
-                                      </td>
-                                      <td>
-                                        {val.user_details?.email || "N/A"}
-                                      </td>
-                                      <td>
-                                        {val.user_details?.phone_number ||
-                                          "N/A"}
-                                      </td>
-                                      <td>
-                                        <span
-                                          className={
-                                            val.status === "Pending"
-                                              ? "badge bg-warning fs-sm"
-                                              : val.status === "Approved"
-                                              ? "badge bg-success fs-sm"
-                                              : "badge bg-danger fs-sm"
+                    {loading ? (
+                      <div className="text-center py-5">
+                        <CircularProgress />
+                      </div>
+                    ) : (
+                      <div className="overflow-auto">
+                        <table className="table table-responsive">
+                          <thead>
+                            <tr
+                              className="rounded-4"
+                              style={{ backgroundColor: "#EEEEEE" }}
+                            >
+                              <th>#</th>
+                              <th className="main-table">NAME</th>
+                              <th className="main-table">EMAIL</th>
+                              <th className="main-table">MOBILE</th>
+                              <th className="main-table">STATUS</th>
+                              <th className="main-table text-center">ACTION</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {kycSubmissions.length === 0 ? (
+                              <tr>
+                                <td colSpan={6} className="text-center py-5">
+                                  {getNoDataMessage()}
+                                </td>
+                              </tr>
+                            ) : (
+                              kycSubmissions.map((submission, index) => (
+                                <tr key={submission.id}>
+                                  <td>
+                                    {index +
+                                      1 +
+                                      (pagination.current_page - 1) *
+                                        pagination.page_size}
+                                  </td>
+                                  <td className="main-table">
+                                    {submission.user_details?.full_name ||
+                                      "N/A"}
+                                  </td>
+                                  <td className="main-table">
+                                    {submission.user_details?.email || "N/A"}
+                                  </td>
+                                  <td className="main-table">
+                                    {submission.user_details?.phone_number ||
+                                      "N/A"}
+                                  </td>
+                                  <td className="main-table">
+                                    <span
+                                      className={`badge bg-${
+                                        submission.status === "Approved"
+                                          ? "success"
+                                          : submission.status === "Pending"
+                                          ? "warning"
+                                          : "danger"
+                                      } py-2`}
+                                    >
+                                      {submission.status}
+                                    </span>
+                                  </td>
+                                  <td className="main-table">
+                                    <div className="d-flex justify-content-around">
+                                      <Tooltip title="View Details">
+                                        <IconButton
+                                          color="info"
+                                          onClick={() =>
+                                            handleViewDetails(submission.id)
                                           }
                                         >
-                                          {val.status}
-                                        </span>
-                                      </td>
-                                      <td>
-                                        <div className="d-flex justify-content-center">
-                                          <Tooltip title="View Details">
-                                            <IconButton
-                                              color="info"
-                                              onClick={(e) =>
-                                                handleUpdateStatus(e, val.id)
-                                              }
-                                            >
-                                              <VisibilityRoundedIcon />
-                                            </IconButton>
-                                          </Tooltip>
-                                        </div>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
+                                          <VisibilityRoundedIcon />
+                                        </IconButton>
+                                      </Tooltip>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
 
-                              {/* Pagination */}
-                              <div className="container-fluid mt-3">
-                                <div className="row align-items-center">
-                                  <div className="col-md-3">
-                                    <FormControl variant="standard" fullWidth>
-                                      <InputLabel>Results per page</InputLabel>
-                                      <Select
-                                        value={pagination.page_size}
-                                        onChange={handlePageSizeChange}
-                                      >
-                                        <MenuItem value={10}>10</MenuItem>
-                                        <MenuItem value={25}>25</MenuItem>
-                                        <MenuItem value={50}>50</MenuItem>
-                                        <MenuItem value={100}>100</MenuItem>
-                                      </Select>
-                                    </FormControl>
-                                  </div>
-                                  <div className="col-md-9 d-flex justify-content-end">
-                                    <Pagination
-                                      count={pagination.total_pages}
-                                      page={pagination.current_page}
-                                      onChange={handlePageChange}
-                                      color="primary"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            </>
-                          )}
+                    <div className="container-fluid mt-4 mb-3">
+                      <div className="row align-items-center">
+                        <div className="col-md-3">
+                          <FormControl variant="standard" fullWidth>
+                            <InputLabel>Results per page</InputLabel>
+                            <Select
+                              value={pagination.page_size}
+                              onChange={handlePageSizeChange}
+                            >
+                              <MenuItem value={10}>10</MenuItem>
+                              <MenuItem value={25}>25</MenuItem>
+                              <MenuItem value={50}>50</MenuItem>
+                              <MenuItem value={100}>100</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </div>
+                        <div className="col-md-9 d-flex justify-content-end">
+                          <Pagination
+                            count={pagination.total_pages}
+                            page={pagination.current_page}
+                            onChange={handlePageChange}
+                            color="primary"
+                          />
                         </div>
                       </div>
                     </div>
@@ -643,12 +609,146 @@ const Kyc = () => {
               </div>
             </div>
           </div>
-          <MyVerticallyCenteredModal
-            show={modalShow}
-            onHide={() => setModalShow(false)}
-          />
-        </>
-      )}
+        </div>
+      </div>
+
+      {/* Filter Modal */}
+      <Modal
+        open={openFilter}
+        onClose={() => setOpenFilter(false)}
+        aria-labelledby="filter-modal-title"
+        aria-describedby="filter-modal-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 700,
+            bgcolor: "#fff",
+            boxShadow: 24,
+            p: 3,
+            borderRadius: "12px",
+          }}
+        >
+          <Typography
+            id="filter-modal-title"
+            className="fw-semibold"
+            variant="h6"
+            component="h2"
+          >
+            Search Records
+          </Typography>
+          <hr />
+
+          <div className="row g-3 mt-3">
+            <div className="col-md-6">
+              <label className="form-label">Email</label>
+              <TextField
+                fullWidth
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                error={!!emailError}
+                helperText={emailError}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    backgroundColor: "#f5f5f5",
+                  },
+                }}
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Status</label>
+              <FormControl fullWidth>
+                <Select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  sx={{
+                    "& .MuiSelect-select": {
+                      borderRadius: "12px",
+                      backgroundColor: "#f5f5f5",
+                    },
+                  }}
+                >
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="Pending">Pending</MenuItem>
+                  <MenuItem value="Approved">Approved</MenuItem>
+                  <MenuItem value="Rejected">Rejected</MenuItem>
+                </Select>
+              </FormControl>
+            </div>
+
+            <div className="col-md-6">
+              <label className="form-label">Start Date</label>
+              <TextField
+                fullWidth
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                error={!!dateError}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    backgroundColor: "#f5f5f5",
+                  },
+                }}
+                inputProps={{
+                  min: minDate,
+                  max: today,
+                }}
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">End Date</label>
+              <TextField
+                fullWidth
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                error={!!dateError}
+                helperText={dateError}
+                disabled={!startDate}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    backgroundColor: "#f5f5f5",
+                  },
+                }}
+                inputProps={{
+                  min: startDate || minDate,
+                  max: today,
+                }}
+              />
+            </div>
+            <div className="col-6">
+              <Button
+                variant="contained"
+                onClick={handleFilterSubmit}
+                className="me-2 w-100"
+                sx={{ height: "45px" }}
+              >
+                Apply
+              </Button>
+            </div>
+            <div className="col-6">
+              <Button
+                variant="outlined"
+                className="w-100"
+                onClick={resetFilters}
+                sx={{ height: "45px" }}
+              >
+                Reset
+              </Button>
+            </div>
+          </div>
+        </Box>
+      </Modal>
+
+      <StatusUpdateModal show={modalShow} onHide={() => setModalShow(false)} />
     </>
   );
 };

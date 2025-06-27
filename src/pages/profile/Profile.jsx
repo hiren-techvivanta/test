@@ -3,12 +3,49 @@ import SideNav from "../../components/SideNav";
 import { Avatar } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import TopNav from "../../components/TopNav";
 
 const Profile = () => {
   const navigate = useNavigate();
   return (
     <>
-      <div className="container py-5 mb-lg-4 ">
+      <div className="container-fluid p-0 m-0">
+        <TopNav />
+        <div className="row m-0">
+          <div
+            className="col-3 p-0"
+            style={{ maxHeight: "100%", overflowY: "auto" }}
+          >
+            <SideNav />
+          </div>
+          <div className="col-9">
+            <div className="container-fluid p-0">
+              <div className="row m-0">
+                <div
+                  className="col-12 py-3"
+                  style={{ background: "#EEEEEE", minHeight: "93vh" }}
+                >
+                  <div className="frame-1597880849">
+                    <div className="all-members-list">Profile</div>
+                  </div>
+                  <div className="card shadow border-0 mt-4">
+                    <div className="card-body">
+                      <div className="row g-3 g-xl-4">
+                        <div className="col-12">
+                          <div className="overflow-auto">
+                            <p>Not functional</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* <div className="container py-5 mb-lg-4 ">
         <div className="row pt-sm-2 pt-lg-0">
           <SideNav />
 
@@ -68,7 +105,7 @@ const Profile = () => {
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
     </>
   );
 };

@@ -3,15 +3,22 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import Cookies from "js-cookie";
+import {
+  TextField,
+  InputAdornment,
+  IconButton,
+  CircularProgress,
+  Button,
+} from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 
 const Login = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    email: "",
+    email: "", // Changed from username to email
     password: "",
   });
   const [loading, setloading] = useState(false);
-
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
 
@@ -27,13 +34,15 @@ const Login = () => {
       ...prev,
       [e.target.name]: e.target.value,
     }));
+    // Clear error when user types
+    setErrors((prev) => ({ ...prev, [e.target.name]: undefined }));
   };
 
   const validate = () => {
     const newErrors = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!formData.email) {
+    if (!formData.email.trim()) {
       newErrors.email = "Email is required";
     } else if (!emailRegex.test(formData.email)) {
       newErrors.email = "Email is invalid";
@@ -72,113 +81,111 @@ const Login = () => {
 
       if (data.status === 200) {
         Cookies.set("authToken", data.data.our_tokens.access);
-        toast.success("Login Successfull");
+        toast.success("Login Successful");
         navigate("/");
-        setloading(false);
       }
     } catch (e) {
-      toast.error(e.response.data.error || "Internal server error");
+      const errorMessage = e.response?.data?.error || "Internal server error";
+      toast.error(errorMessage);
+    } finally {
       setloading(false);
     }
-    setErrors({});
   };
 
   return (
-    <div className="container mt-5 pt-5">
-      <div className="row justify-content-center">
-        <div className="col-md-6 col-xl-5">
-          <h2 className="text-center mb-4">Login</h2>
-          <form onSubmit={handleSubmit} noValidate>
-            <div className="mb-3">
-              <label htmlFor="email" className="form-label">
-                Email address
-              </label>
-              <input
-                type="email"
-                name="email"
-                className={`form-control ${errors.email ? "is-invalid" : ""}`}
-                id="email"
-                placeholder="Enter your email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-              />
-              {errors.email && (
-                <div className="invalid-feedback">{errors.email}</div>
-              )}
-            </div>
+    <div className="main-box d-flex justify-content-center align-items-center">
+      <div
+        className="card border-0 rounded-4 shadow"
+        style={{ width: "30%", minWidth: "350px" }}
+      >
+        <div className="card-body p-0">
+          <div className="p-4 border-bottom">
+            <h4 className="fw-bold">Admin Login</h4>
+            <p className="text-secondary" style={{ fontWeight: "500" }}>
+              This portal is only accessible by admins
+            </p>
+          </div>
 
-            <div className="mb-3">
-              <label htmlFor="password" className="form-label">
-                Password
-              </label>
-              <div className="input-group p-0">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  className={`form-control ${
-                    errors.password ? "is-invalid" : ""
-                  }`}
-                  id="password"
-                  placeholder="Enter your password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                />
-                <label
-                  class="password-toggle-btn"
-                  aria-label="Show/hide password"
-                >
-                  <input
-                    class="password-toggle-check"
-                    onChange={() => setShowPassword((prev) => !prev)}
-                    type="checkbox"
+          <div className="p-4">
+            <form autoComplete="off" onSubmit={handleSubmit}>
+              <div className="row m-0">
+                {/* Email Field - Fixed */}
+                <div className="col-12 mb-4">
+                  <label className="form-label fw-semibold text-secondary">
+                    Email
+                  </label>
+                  <TextField
+                    name="email" // Changed from username to email
+                    variant="outlined"
+                    fullWidth
+                    value={formData.email}
+                    onChange={handleChange}
+                    error={!!errors.email}
+                    helperText={errors.email}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: "12px",
+                        backgroundColor: "#f5f5f5",
+                      },
+                    }}
                   />
-                  <span class="password-toggle-indicator"></span>
-                </label>
-              </div>
-              {errors.password && (
-                <div className="invalid-feedback d-block">
-                  {errors.password}
                 </div>
-              )}
-            </div>
 
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <div className="form-check">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  id="rememberMe"
-                />
-                <label className="form-check-label" htmlFor="rememberMe">
-                  Remember me
-                </label>
+                {/* Password Field */}
+                <div className="col-12 mb-4">
+                  <label className="form-label fw-semibold text-secondary">
+                    Password
+                  </label>
+                  <TextField
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    variant="outlined"
+                    fullWidth
+                    value={formData.password}
+                    onChange={handleChange}
+                    error={!!errors.password}
+                    helperText={errors.password}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: "12px",
+                        backgroundColor: "#f5f5f5",
+                      },
+                    }}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={() => setShowPassword(!showPassword)}
+                            edge="end"
+                          >
+                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </div>
+
+                {/* Submit Button */}
+                <div className="col-12 mt-2">
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    className=" w-100 rounded-1 fs-6"
+                    type="submit"
+                    style={{ height: "45px" }}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                     <> <CircularProgress size={24} color="inherit" className="me-2" /> Loading...</>
+                    ) : (
+                      "Login"
+                    )}
+                  </Button>
+                </div>
               </div>
-              <a href="#" className="small">
-                Forgot password?
-              </a>
-            </div>
-
-            {loading === false ? (
-              <>
-                <button type="submit" className="btn btn-primary w-100 btn-lg">
-                  Sign In
-                </button>
-              </>
-            ) : (
-              <>
-                <button disabled className="btn btn-primary w-100 btn-lg">
-                  <span
-                    class="spinner-border spinner-border-sm me-2"
-                    role="status"
-                    aria-hidden="true"
-                  ></span>
-                  Loading...
-                </button>
-              </>
-            )}
-          </form>
+            </form>
+          </div>
         </div>
       </div>
     </div>

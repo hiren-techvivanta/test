@@ -1,44 +1,40 @@
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import SideNav from "../../../components/SideNav";
+import TopNav from "../../../components/TopNav";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { toast } from "react-toastify";
+import { Button, TextField, MenuItem } from "@mui/material";
 
 const SendNotification = () => {
   const [formData, setFormData] = useState({
     title: "",
     message: "",
-    image: null,
     topic: "",
   });
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const token = Cookies.get("authToken");
-  const imageInputRef = useRef(null);
 
-  const handleChange = (e) => {
-    const { name, value, files } = e.target;
-    if (name === "image") {
-      setFormData({ ...formData, image: files[0] });
-    } else {
-      setFormData({ ...formData, [name]: value });
-    }
+  const token = Cookies.get("authToken");
+  const config = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   };
 
-  const clearImage = () => {
-    setFormData({ ...formData, image: null });
-    if (imageInputRef.current) {
-      imageInputRef.current.value = "";
-    }
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    if (errors[name]) setErrors({ ...errors, [name]: "" });
   };
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.title.trim()) newErrors.title = "Title is required.";
-    if (!formData.message.trim()) newErrors.message = "Message is required.";
+    if (!formData.title.trim()) newErrors.title = "Title is required";
+    if (!formData.message.trim()) newErrors.message = "Message is required";
     if (!formData.topic || formData.topic === "")
-      newErrors.topic = "Please select a valid topic.";
+      newErrors.topic = "Please select a topic";
     return newErrors;
   };
 
@@ -50,9 +46,7 @@ const SendNotification = () => {
       return;
     }
 
-    setErrors({});
     setLoading(true);
-
     try {
       const payload = {
         topic: formData.topic,
@@ -63,9 +57,7 @@ const SendNotification = () => {
       const { data } = await axios.post(
         `${process.env.REACT_APP_BACKEND_URL}/api/auth/topic-notification/`,
         payload,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        config
       );
 
       if (data.status === 200) {
@@ -73,7 +65,6 @@ const SendNotification = () => {
         setFormData({
           title: "",
           message: "",
-          image: null,
           topic: "",
         });
       }
@@ -84,99 +75,148 @@ const SendNotification = () => {
     }
   };
 
+  const handleReset = () => {
+    setFormData({
+      title: "",
+      message: "",
+      topic: "",
+    });
+    setErrors({});
+  };
+
   return (
-    <div className="container py-5 mb-lg-4">
-      <div className="row pt-sm-2 pt-lg-0">
-        <SideNav />
-        <div className="col-lg-9 pt-4 pb-2 pb-sm-4">
-          <div className="d-sm-flex align-items-center mb-4">
-            <h1 className="h2 mb-4 mb-sm-0 me-4">Send Notification</h1>
+    <>
+      <div className="container-fluid p-0 m-0">
+        <TopNav />
+        <div className="row m-0">
+          <div
+            className="col-3 p-0"
+            style={{ maxHeight: "100%", overflowY: "auto" }}
+          >
+            <SideNav />
           </div>
+          <div className="col-9 p-0">
+            <div className="container-fluid p-0">
+              <div className="row m-0">
+                <div
+                  className="col-12 py-3"
+                  style={{ background: "#EEEEEE", minHeight: "93vh" }}
+                >
+                  <div className="frame-1597880849">
+                    <div className="all-members-list">Send Notification</div>
+                  </div>
 
-          <div className="card shadow border-0">
-            <div className="card-body">
-              <form onSubmit={handleSubmit}>
-                {/* Title */}
-                <div className="mb-3">
-                  <label htmlFor="title" className="form-label">
-                    Title
-                  </label>
-                  <input
-                    type="text"
-                    name="title"
-                    id="title"
-                    className={`form-control ${
-                      errors.title ? "is-invalid" : ""
-                    }`}
-                    value={formData.title}
-                    onChange={handleChange}
-                  />
-                  {errors.title && (
-                    <div className="invalid-feedback">{errors.title}</div>
-                  )}
-                </div>
+                  <div className="card shadow border-0 mt-4">
+                    <div className="card-body">
+                      <form onSubmit={handleSubmit}>
+                        <div className="row m-0">
+                          {/* Title */}
+                          <div className="col-12 mb-4">
+                            <label className="form-label">Email</label>
+                            <TextField
+                              fullWidth
+                              name="title"
+                              value={formData.title}
+                              onChange={handleChange}
+                              error={!!errors.title}
+                              helperText={errors.title}
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  borderRadius: "12px",
+                                  backgroundColor: "#f5f5f5",
+                                },
+                              }}
+                            />
+                          </div>
 
-                {/* Message */}
-                <div className="mb-3">
-                  <label htmlFor="message" className="form-label">
-                    Message
-                  </label>
-                  <textarea
-                    name="message"
-                    id="message"
-                    rows="4"
-                    className={`form-control ${
-                      errors.message ? "is-invalid" : ""
-                    }`}
-                    value={formData.message}
-                    onChange={handleChange}
-                  ></textarea>
-                  {errors.message && (
-                    <div className="invalid-feedback">{errors.message}</div>
-                  )}
-                </div>
+                          {/* Message */}
+                          <div className="col-12 mb-4">
+                            <label className="form-label">Message</label>
+                            <TextField
+                              fullWidth
+                              name="message"
+                              multiline
+                              rows={4}
+                              value={formData.message}
+                              onChange={handleChange}
+                              error={!!errors.message}
+                              helperText={errors.message}
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  borderRadius: "12px",
+                                  backgroundColor: "#f5f5f5",
+                                },
+                              }}
+                            />
+                          </div>
 
-                {/* Topic */}
-                <div className="mb-3">
-                  <label htmlFor="topic" className="form-label">
-                    Topic
-                  </label>
-                  <select
-                    id="topic"
-                    name="topic"
-                    className={`form-select ${
-                      errors.topic ? "is-invalid" : ""
-                    }`}
-                    value={formData.topic}
-                    onChange={handleChange}
-                  >
-                    <option value="">Select Type</option>
-                    <option value="all">All</option>
-                    <option value="user">User</option>
-                    <option value="android">Android</option>
-                    <option value="ios">Ios</option>
-                  </select>
-                  {errors.topic && (
-                    <div className="invalid-feedback">{errors.topic}</div>
-                  )}
-                </div>
+                          {/* Topic */}
+                          <div className="col-12 mb-4">
+                            <label className="form-label">Topic</label>
+                            <TextField
+                              select
+                              fullWidth
+                              name="topic"
+                              value={formData.topic}
+                              onChange={handleChange}
+                              error={!!errors.topic}
+                              helperText={errors.topic}
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  borderRadius: "12px",
+                                  backgroundColor: "#f5f5f5",
+                                },
+                              }}
+                            >
+                              <MenuItem value="">Select Type</MenuItem>
+                              <MenuItem value="all">All</MenuItem>
+                              <MenuItem value="user">User</MenuItem>
+                              <MenuItem value="android">Android</MenuItem>
+                              <MenuItem value="ios">iOS</MenuItem>
+                            </TextField>
+                          </div>
 
-                {/* Submit */}
-                <div>
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                    disabled={loading}
-                  >
-                    {loading ? "Sending..." : "Send Notification"}
-                  </button>
+                          {/* Action Buttons */}
+                          <div className="col-12 d-flex gap-2">
+                            <Button
+                              variant="contained"
+                              type="submit"
+                              disabled={loading}
+                              sx={{ height: "55px" }}
+                            >
+                              {loading ? (
+                                <>
+                                  <span
+                                    className="spinner-border spinner-border-sm me-2"
+                                    role="status"
+                                    aria-hidden="true"
+                                  ></span>
+                                  Sending...
+                                </>
+                              ) : (
+                                "Send Notification"
+                              )}
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              color="dark"
+                              onClick={handleReset}
+                              sx={{ height: "55px" }}
+                            >
+                              Reset
+                            </Button>
+                          </div>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
                 </div>
-              </form>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

@@ -315,7 +315,7 @@ const Charts = () => {
   };
 
   return (
-    <div className="container-fluid">
+    <div className="container-fluid p-0">
       <div className="row g-3">
         <div className="col-12">
           <h2 className="text-center mb-4">Dashboard Analytics</h2>

@@ -10,7 +10,6 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogContentText,
   Table,
   TableBody,
   TableCell,
@@ -18,19 +17,25 @@ import {
   TextField,
   Button,
   CircularProgress,
+  Chip,
+  Box,
+  Modal,
+  Typography,
 } from "@mui/material";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import SideNav from "../../components/SideNav";
+import TopNav from "../../components/TopNav";
 import axios from "axios";
 import Cookies from "js-cookie";
 import dayjs from "dayjs";
-import Loader from "../../components/Loader";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import FilterListIcon from "@mui/icons-material/FilterList";
 
 const WalletTopup = () => {
   // Define min and max allowed dates
   const minAllowedDate = "0000-01-01";
   const maxAllowedDate = dayjs().format("YYYY-MM-DD");
-  
+
   const [resultsPerPage, setResultsPerPage] = useState(10);
   const [transactions, setTransactions] = useState([]);
   const [email, setEmail] = useState("");
@@ -48,9 +53,13 @@ const WalletTopup = () => {
   const [emailError, setEmailError] = useState("");
   const [startDateError, setStartDateError] = useState("");
   const [endDateError, setEndDateError] = useState("");
-  const [exporting, setExporting] = useState(false); // Added exporting state
+  const [exporting, setExporting] = useState(false);
+  const [openFilter, setOpenFilter] = useState(false);
 
   const token = Cookies.get("authToken");
+
+  const handleOpenFilter = () => setOpenFilter(true);
+  const handleCloseFilter = () => setOpenFilter(false);
 
   const getData = async (page = 1, pageSize = resultsPerPage) => {
     setLoading(true);
@@ -122,7 +131,7 @@ const WalletTopup = () => {
     setEndDateError("");
 
     // Email validation
-    const trimmedEmail = email.trim(); 
+    const trimmedEmail = email.trim();
 
     if (
       trimmedEmail &&
@@ -139,12 +148,14 @@ const WalletTopup = () => {
       const start = dayjs(startDate);
       const minDate = dayjs(minAllowedDate);
       const maxDate = dayjs(maxAllowedDate);
-      
+
       if (start.isBefore(minDate)) {
-        setStartDateError(`Date must be on or after ${minDate.format("DD/MM/YYYY")}`);
+        setStartDateError(
+          `Date must be on or after ${minDate.format("DD/MM/YYYY")}`
+        );
         isValid = false;
       }
-      
+
       if (start.isAfter(maxDate)) {
         setStartDateError("Future dates are not allowed");
         isValid = false;
@@ -156,12 +167,14 @@ const WalletTopup = () => {
       const end = dayjs(endDate);
       const minDate = dayjs(minAllowedDate);
       const maxDate = dayjs(maxAllowedDate);
-      
+
       if (end.isBefore(minDate)) {
-        setEndDateError(`Date must be on or after ${minDate.format("DD/MM/YYYY")}`);
+        setEndDateError(
+          `Date must be on or after ${minDate.format("DD/MM/YYYY")}`
+        );
         isValid = false;
       }
-      
+
       if (end.isAfter(maxDate)) {
         setEndDateError("Future dates are not allowed");
         isValid = false;
@@ -172,7 +185,7 @@ const WalletTopup = () => {
     if (startDate && endDate) {
       const start = dayjs(startDate);
       const end = dayjs(endDate);
-      
+
       if (end.isBefore(start)) {
         setEndDateError("End date must be after start date");
         isValid = false;
@@ -186,6 +199,7 @@ const WalletTopup = () => {
     e.preventDefault();
     if (validateForm()) {
       getData(1);
+      handleCloseFilter();
     }
   };
 
@@ -198,6 +212,7 @@ const WalletTopup = () => {
     setStartDateError("");
     setEndDateError("");
     setResetTrigger(true);
+    handleCloseFilter();
   };
 
   const handleViewDetails = (txn) => {
@@ -224,7 +239,8 @@ const WalletTopup = () => {
 
     if (email) filters.push(`email: ${email}`);
     if (status) filters.push(`status: ${status}`);
-    if (startDate) filters.push(`from ${dayjs(startDate).format("DD/MM/YYYY")}`);
+    if (startDate)
+      filters.push(`from ${dayjs(startDate).format("DD/MM/YYYY")}`);
     if (endDate) filters.push(`to ${dayjs(endDate).format("DD/MM/YYYY")}`);
 
     if (filters.length > 0) {
@@ -250,10 +266,10 @@ const WalletTopup = () => {
     return `${symbol} ${parseFloat(amount).toFixed(2)}`;
   };
 
-  // NEW EXPORT FUNCTIONALITY
+  // Export functionality
   const fetchExportData = async () => {
     if (!validateForm()) return;
-    
+
     setExporting(true);
     try {
       const params = {
@@ -285,7 +301,7 @@ const WalletTopup = () => {
         // Create filename with timestamp
         const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
         const fileName = `wallet_topups_${timestamp}`;
-        
+
         // Flatten transactions for CSV
         const flattenedTopups = topups.map((topup) => ({
           id: topup.id,
@@ -320,20 +336,24 @@ const WalletTopup = () => {
         const escapeField = (field) => {
           if (field == null) return "";
           const str = String(field);
-          return str.includes(",") || str.includes('"') || str.includes("\n") 
-            ? `"${str.replace(/"/g, '""')}"` 
+          return str.includes(",") || str.includes('"') || str.includes("\n")
+            ? `"${str.replace(/"/g, '""')}"`
             : str;
         };
 
         // Generate CSV content
-        const headerRow = columns.map(col => escapeField(col.title)).join(",");
-        const dataRows = flattenedTopups.map(topup => 
-          columns.map(col => escapeField(topup[col.id])).join(",")
+        const headerRow = columns
+          .map((col) => escapeField(col.title))
+          .join(",");
+        const dataRows = flattenedTopups.map((topup) =>
+          columns.map((col) => escapeField(topup[col.id])).join(",")
         );
-        
+
         const csvContent = [headerRow, ...dataRows].join("\n");
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-        
+        const blob = new Blob([csvContent], {
+          type: "text/csv;charset=utf-8;",
+        });
+
         // Trigger download
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
@@ -354,191 +374,140 @@ const WalletTopup = () => {
     }
   };
 
+  // Format status badge
+  const getStatusBadge = (status) => {
+    const statusMap = {
+      completed: "success",
+      initiated: "warning",
+      failed: "error",
+    };
+
+    const color = statusMap[status.toLowerCase()] || "default";
+    const label = status.charAt(0).toUpperCase() + status.slice(1);
+
+    return (
+      <Chip label={label} color={color} className="text-white" size="small" />
+    );
+  };
+
   return (
-    <>
-      {loading ? (
-        <Loader />
-      ) : (
-        <div className="container py-5 mb-lg-4">
-          <div className="row pt-sm-2 pt-lg-0">
-            <SideNav />
+    <div className="container-fluid p-0">
+      <TopNav />
+      <div className="row m-0">
+        <div
+          className="col-3 p-0"
+          style={{ maxHeight: "100%", overflowY: "auto" }}
+        >
+          <SideNav />
+        </div>
+        <div className="col-9">
+          <div className="row m-0">
+            <div
+              className="col-12 py-3"
+              style={{ background: "#EEEEEE", minHeight: "93vh" }}
+            >
+              <div className="frame-1597880849">
+                <div className="all-members-list">Wallet Topup</div>
 
-            <div className="col-lg-9 pt-4 pb-2 pb-sm-4">
-              <div className="d-sm-flex align-items-center mb-4">
-                <h1 className="h2 mb-4 mb-sm-0 me-4">Wallet Topup</h1>
-              </div>
+                <div className="frame-1597880735">
+                  <div className="frame-1597880734">
+                    <Button
+                      variant="contained"
+                      className="excel"
+                      sx={{ padding: "0 16px", height: "48px" }}
+                      onClick={fetchExportData}
+                      disabled={exporting}
+                    >
+                      {exporting ? (
+                        <CircularProgress size={24} color="inherit" />
+                      ) : (
+                        <>
+                          <FileDownloadIcon className="me-2" /> Export
+                        </>
+                      )}
+                    </Button>
+                  </div>
 
-              <div className="card shadow border-0">
-                <div className="card-body">
-                  <form onSubmit={handleFilterSubmit} className="">
-                    <div className="row g-3">
-                      <div className="col-md-3">
-                        <TextField
-                          label="Email"
-                          value={email}
-                          onChange={(e) => {
-                            setEmail(e.target.value);
-                            if (emailError) setEmailError("");
-                          }}
-                          error={!!emailError}
-                          helperText={emailError}
-                          fullWidth
-                          size="small"
-                        />
-                      </div>
-                      <div className="col-md-3">
-                        <FormControl fullWidth size="small">
-                          <InputLabel>Status</InputLabel>
-                          <Select
-                            value={status}
-                            onChange={(e) => setStatus(e.target.value)}
-                            label="Status"
-                          >
-                            <MenuItem value="">All Status</MenuItem>
-                            <MenuItem value="initiated">Initiated</MenuItem>
-                            <MenuItem value="completed">Completed</MenuItem>
-                            <MenuItem value="failed">Failed</MenuItem>
-                          </Select>
-                        </FormControl>
-                      </div>
-                      <div className="col-md-3">
-                        <TextField
-                          label="Start Date"
-                          type="date"
-                          InputLabelProps={{ shrink: true }}
-                          value={startDate}
-                          onChange={(e) => {
-                            setStartDate(e.target.value);
-                            if (startDateError) setStartDateError("");
-                          }}
-                          inputProps={{
-                            min: minAllowedDate,
-                            max: maxAllowedDate
-                          }}
-                          error={!!startDateError}
-                          helperText={startDateError}
-                          fullWidth
-                          size="small"
-                        />
-                      </div>
-                      <div className="col-md-3">
-                        <TextField
-                          label="End Date"
-                          type="date"
-                          InputLabelProps={{ shrink: true }}
-                          value={endDate}
-                          onChange={(e) => {
-                            setEndDate(e.target.value);
-                            if (endDateError) setEndDateError("");
-                          }}
-                          inputProps={{
-                            min: startDate || minAllowedDate,
-                            max: maxAllowedDate
-                          }}
-                          disabled={!startDate}
-                          error={!!endDateError}
-                          helperText={endDateError}
-                          fullWidth
-                          size="small"
-                        />
-                      </div>
-                      <div className="col-md-2 d-flex align-items-end">
-                        <Button
-                          variant="contained"
-                          color="primary"
-                          type="submit"
-                          fullWidth
-                        >
-                          Apply
-                        </Button>
-                      </div>
-                      <div className="col-md-2 d-flex align-items-end">
-                        <Button
-                          variant="outlined"
-                          color="light"
-                          onClick={resetFilters}
-                          fullWidth
-                        >
-                          Reset
-                        </Button>
-                      </div>
-                      {/* Added Export Button */}
-                      <div className="col-md-2 d-flex align-items-end">
-                        <Button
-                          variant="contained"
-                          className="w-100"
-                          color="success"
-                          onClick={fetchExportData}
-                          disabled={exporting}
-                        >
-                          {exporting ? (
-                            <CircularProgress size={24} color="inherit" />
-                          ) : (
-                            "Export"
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </form>
+                  <div className="frame-15978807352">
+                    <Button
+                      variant="contained"
+                      startIcon={<FilterListIcon />}
+                      className="filter"
+                      sx={{ padding: "0 16px", height: "48px" }}
+                      disableElevation
+                      onClick={handleOpenFilter}
+                    >
+                      Filter
+                    </Button>
+                  </div>
                 </div>
               </div>
 
-              <div className="card shadow border-0 mt-3">
+              <div className="card mw-100 mt-5 rounded-4 border-0">
                 <div className="card-body">
                   <div className="overflow-auto">
-                    {transactions.length === 0 ? (
-                      <h6 className="text-center">{getNoDataMessage()}</h6>
-                    ) : (
-                      <>
-                        <table className="table">
-                          <thead>
-                            <tr>
-                              <th>#</th>
-                              <th>User Name</th>
-                              <th>User Email</th>
-                              <th>Currency</th>
-                              <th>Amount</th>
-                              <th>Status</th>
-                              <th>Transaction Time</th>
-                              <th>Action</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {transactions.map((txn, idx) => (
-                              <tr key={txn.id}>
-                                <td>
-                                  {(pagination.current_page - 1) *
-                                    resultsPerPage +
-                                    idx +
-                                    1}
-                                </td>
-                                <td>{txn?.user_full_name || "N/A"}</td>
-                                <td>{txn?.user_email || "N/A"}</td>
-                                <td>{txn.currency || "N/A"}</td>
-                                <td>
-                                  {formatCurrency(txn.amount, txn.currency)}
-                                </td>
-                                <td>
-                                  <span
-                                    className={
-                                      txn.status === "completed"
-                                        ? "badge bg-success"
-                                        : txn.status === "initiated"
-                                        ? "badge bg-warning"
-                                        : "badge bg-danger"
-                                    }
-                                  >
-                                    {txn.status || "N/A"}
-                                  </span>
-                                </td>
-                                <td>
-                                  {txn.created_at
-                                    ? dayjs(txn.created_at).format(
-                                        "DD/MM/YYYY hh:mm A"
-                                      )
-                                    : "N/A"}
-                                </td>
-                                <td>
+                    <table className="table table-responsive">
+                      <thead>
+                        <tr
+                          className="rounded-4"
+                          style={{ backgroundColor: "#EEEEEE" }}
+                        >
+                          <th>#</th>
+                          <th className="main-table">USER NAME</th>
+                          <th className="main-table">USER EMAIL</th>
+                          <th className="main-table">CURRENCY</th>
+                          <th className="main-table">AMOUNT</th>
+                          <th className="main-table">STATUS</th>
+                          <th className="main-table">TRANSACTION TIME</th>
+                          <th className="main-table text-center">ACTION</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {loading ? (
+                          <tr>
+                            <td colSpan={8} className="text-center py-5">
+                              <CircularProgress />
+                            </td>
+                          </tr>
+                        ) : transactions.length === 0 ? (
+                          <tr>
+                            <td colSpan={8} className="text-center py-5">
+                              {getNoDataMessage()}
+                            </td>
+                          </tr>
+                        ) : (
+                          transactions.map((txn, idx) => (
+                            <tr key={txn.id}>
+                              <td>
+                                {(pagination.current_page - 1) *
+                                  resultsPerPage +
+                                  idx +
+                                  1}
+                              </td>
+                              <td className="main-table">
+                                {txn?.user_full_name || "N/A"}
+                              </td>
+                              <td className="main-table">
+                                {txn?.user_email || "N/A"}
+                              </td>
+                              <td className="main-table">
+                                {txn.currency || "N/A"}
+                              </td>
+                              <td className="main-table">
+                                {formatCurrency(txn.amount, txn.currency)}
+                              </td>
+                              <td className="main-table">
+                                {getStatusBadge(txn.status)}
+                              </td>
+                              <td>
+                                {txn.created_at
+                                  ? dayjs(txn.created_at).format(
+                                      "DD/MM/YYYY hh:mm A"
+                                    )
+                                  : "N/A"}
+                              </td>
+                              <td className="main-table">
+                                <div className="d-flex justify-content-around">
                                   <Tooltip title="View Details">
                                     <IconButton
                                       color="info"
@@ -547,185 +516,282 @@ const WalletTopup = () => {
                                       <VisibilityRoundedIcon />
                                     </IconButton>
                                   </Tooltip>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-
-                        <div className="container-fluid mb-3">
-                          <div className="row">
-                            <div className="col-3">
-                              <FormControl variant="standard" fullWidth>
-                                <InputLabel id="results-label">
-                                  Results
-                                </InputLabel>
-                                <Select
-                                  labelId="results-label"
-                                  id="results-select"
-                                  value={resultsPerPage}
-                                  onChange={handleChange}
-                                >
-                                  <MenuItem value={10}>10</MenuItem>
-                                  <MenuItem value={25}>25</MenuItem>
-                                  <MenuItem value={50}>50</MenuItem>
-                                  <MenuItem value={100}>100</MenuItem>
-                                </Select>
-                              </FormControl>
-                            </div>
-                            <div className="col-9 d-flex justify-content-end">
-                              <Pagination
-                                count={pagination.total_pages}
-                                page={pagination.current_page}
-                                onChange={handlePageChange}
-                                color="primary"
-                                disabled={transactions.length === 0}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </>
-                    )}
-
-                    <Dialog
-                      open={open}
-                      onClose={() => setOpen(false)}
-                      maxWidth="md"
-                      fullWidth
-                    >
-                      <DialogTitle>Topup Transaction Details</DialogTitle>
-                      <DialogContent
-                        style={{ maxHeight: "80vh", overflow: "auto" }}
-                      >
-                        {selectedTransaction ? (
-                          <Table>
-                            <TableBody>
-                              {/* User Information */}
-                              <TableRow>
-                                <TableCell>
-                                  <strong>User Name</strong>
-                                </TableCell>
-                                <TableCell>
-                                  {selectedTransaction.user_full_name || "N/A"}
-                                </TableCell>
-                              </TableRow>
-                              <TableRow>
-                                <TableCell>
-                                  <strong>User Email</strong>
-                                </TableCell>
-                                <TableCell>
-                                  {selectedTransaction.user_email || "N/A"}
-                                </TableCell>
-                              </TableRow>
-
-                              {/* Transaction Details */}
-                              <TableRow>
-                                <TableCell>
-                                  <strong>Transaction ID</strong>
-                                </TableCell>
-                                <TableCell>
-                                  {selectedTransaction.id || "N/A"}
-                                </TableCell>
-                              </TableRow>
-                              <TableRow>
-                                <TableCell>
-                                  <strong>Currency</strong>
-                                </TableCell>
-                                <TableCell>
-                                  {selectedTransaction.currency || "N/A"}
-                                </TableCell>
-                              </TableRow>
-                              <TableRow>
-                                <TableCell>
-                                  <strong>Amount</strong>
-                                </TableCell>
-                                <TableCell>
-                                  {formatCurrency(
-                                    selectedTransaction.amount,
-                                    selectedTransaction.currency
-                                  )}
-                                </TableCell>
-                              </TableRow>
-                              <TableRow>
-                                <TableCell>
-                                  <strong>Status</strong>
-                                </TableCell>
-                                <TableCell>
-                                  <span
-                                    className={
-                                      selectedTransaction.status === "completed"
-                                        ? "badge bg-success"
-                                        : selectedTransaction.status ===
-                                          "initiated"
-                                        ? "badge bg-warning"
-                                        : "badge bg-danger"
-                                    }
-                                  >
-                                    {selectedTransaction.status || "N/A"}
-                                  </span>
-                                </TableCell>
-                              </TableRow>
-                              <TableRow>
-                                <TableCell>
-                                  <strong>Transaction Time</strong>
-                                </TableCell>
-                                <TableCell>
-                                  {selectedTransaction.created_at
-                                    ? dayjs(
-                                        selectedTransaction.created_at
-                                      ).format("DD/MM/YYYY hh:mm A")
-                                    : "N/A"}
-                                </TableCell>
-                              </TableRow>
-
-                              {/* Additional Fields */}
-                              {Object.entries(selectedTransaction)
-                                .filter(
-                                  ([key]) =>
-                                    ![
-                                      "user_full_name",
-                                      "user_email",
-                                      "id",
-                                      "currency",
-                                      "amount",
-                                      "status",
-                                      "created_at",
-                                    ].includes(key)
-                                )
-                                .map(([key, value]) => (
-                                  <TableRow key={key}>
-                                    <TableCell>
-                                      <strong>{formatKey(key)}</strong>
-                                    </TableCell>
-                                    <TableCell>
-                                      {key.includes("date") ||
-                                      key.includes("_at")
-                                        ? dayjs(value).format(
-                                            "DD/MM/YYYY hh:mm A"
-                                          )
-                                        : typeof value === "object"
-                                        ? JSON.stringify(value, null, 2)
-                                        : value}
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                            </TableBody>
-                          </Table>
-                        ) : (
-                          <DialogContentText>
-                            No transaction details available
-                          </DialogContentText>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
                         )}
-                      </DialogContent>
-                    </Dialog>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="container-fluid mt-4 mb-3">
+                    <div className="row align-items-center">
+                      <div className="col-md-3">
+                        <FormControl variant="standard" fullWidth>
+                          <InputLabel id="results-label">
+                            Results per page
+                          </InputLabel>
+                          <Select
+                            labelId="results-label"
+                            id="results-select"
+                            value={resultsPerPage}
+                            onChange={handleChange}
+                          >
+                            <MenuItem value={10}>10</MenuItem>
+                            <MenuItem value={25}>25</MenuItem>
+                            <MenuItem value={50}>50</MenuItem>
+                            <MenuItem value={100}>100</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </div>
+                      <div className="col-md-9 d-flex justify-content-end">
+                        <Pagination
+                          count={pagination.total_pages}
+                          page={pagination.current_page}
+                          onChange={handlePageChange}
+                          color="primary"
+                          disabled={transactions.length === 0}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      )}
-    </>
+      </div>
+
+      {/* Filter Modal */}
+      <Modal
+        open={openFilter}
+        onClose={handleCloseFilter}
+        aria-labelledby="filter-modal-title"
+        aria-describedby="filter-modal-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 700,
+            bgcolor: "#fff",
+            boxShadow: 24,
+            p: 3,
+            borderRadius: "12px",
+          }}
+        >
+          <Typography
+            id="filter-modal-title"
+            className="fw-semibold"
+            variant="h6"
+            component="h2"
+          >
+            Search Records
+          </Typography>
+          <hr />
+
+          <div className="row g-3 mt-3">
+            <div className="col-md-6">
+              <label className="form-label">Email</label>
+              <TextField
+                fullWidth
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (emailError) setEmailError("");
+                }}
+                error={!!emailError}
+                helperText={emailError}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    backgroundColor: "#f5f5f5",
+                  },
+                }}
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Status</label>
+              <FormControl fullWidth>
+                <Select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  sx={{
+                    "& .MuiSelect-select": {
+                      borderRadius: "12px",
+                      backgroundColor: "#f5f5f5",
+                    },
+                  }}
+                >
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="initiated">Initiated</MenuItem>
+                  <MenuItem value="completed">Completed</MenuItem>
+                  <MenuItem value="failed">Failed</MenuItem>
+                </Select>
+              </FormControl>
+            </div>
+
+            <div className="col-md-6">
+              <label className="form-label">Start Date</label>
+              <TextField
+                fullWidth
+                type="date"
+                value={startDate}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  if (startDateError) setStartDateError("");
+                }}
+                InputLabelProps={{ shrink: true }}
+                error={!!startDateError}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    backgroundColor: "#f5f5f5",
+                  },
+                }}
+                helperText={startDateError ? "" : ``}
+                inputProps={{
+                  min: minAllowedDate,
+                  max: maxAllowedDate,
+                }}
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">End Date</label>
+              <TextField
+                fullWidth
+                type="date"
+                value={endDate}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  if (endDateError) setEndDateError("");
+                }}
+                InputLabelProps={{ shrink: true }}
+                error={!!endDateError}
+                helperText={endDateError || ``}
+                disabled={!startDate}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    backgroundColor: "#f5f5f5",
+                  },
+                }}
+                inputProps={{
+                  min: startDate || minAllowedDate,
+                  max: maxAllowedDate,
+                }}
+              />
+            </div>
+
+            <div className="col-6">
+              <Button
+                variant="contained"
+                onClick={handleFilterSubmit}
+                className="me-2 w-100"
+                sx={{ height: "45px" }}
+              >
+                Apply
+              </Button>
+            </div>
+            <div className="col-6">
+              <Button
+                variant="outlined"
+                className="w-100"
+                onClick={resetFilters}
+                sx={{ height: "45px" }}
+              >
+                Reset
+              </Button>
+            </div>
+          </div>
+        </Box>
+      </Modal>
+
+      {/* Transaction Details Dialog */}
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Topup Transaction Details</DialogTitle>
+        <DialogContent style={{ maxHeight: "80vh", overflow: "auto" }}>
+          {selectedTransaction ? (
+            <Table>
+              <TableBody>
+                {Object.entries(selectedTransaction).map(([key, value]) => {
+                  let displayValue;
+
+                  // Format date values
+                  if (
+                    typeof value === "string" &&
+                    (key.includes("date") || key.includes("_at"))
+                  ) {
+                    displayValue = value
+                      ? dayjs(value).format("DD/MM/YYYY hh:mm A")
+                      : "-";
+                  }
+                  // Handle all other nested objects
+                  else if (typeof value === "object" && value !== null) {
+                    displayValue = (
+                      <Table size="small">
+                        <TableBody>
+                          {Object.entries(value).map(([subKey, subVal]) => (
+                            <TableRow key={subKey}>
+                              <TableCell style={{ width: "30%" }}>
+                                <strong>{formatKey(subKey)}</strong>
+                              </TableCell>
+                              <TableCell>
+                                {typeof subVal === "boolean" ? (
+                                  <Chip
+                                    label={subVal ? "Yes" : "No"}
+                                    color={subVal ? "success" : "default"}
+                                    size="small"
+                                  />
+                                ) : subKey.includes("date") ||
+                                  subKey.includes("_at") ? (
+                                  subVal ? (
+                                    dayjs(subVal).format("DD/MM/YYYY hh:mm A")
+                                  ) : (
+                                    "-"
+                                  )
+                                ) : subVal === null || subVal === "" ? (
+                                  "-"
+                                ) : (
+                                  subVal.toString()
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    );
+                  }
+                  // Default case: show plain values
+                  else {
+                    displayValue = value || "-";
+                  }
+
+                  return (
+                    <TableRow key={key}>
+                      <TableCell style={{ width: "30%" }}>
+                        <strong>{formatKey(key)}</strong>
+                      </TableCell>
+                      <TableCell>{displayValue}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-center py-4">No transaction details available</p>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 

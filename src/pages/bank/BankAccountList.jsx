@@ -10,21 +10,27 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogContentText,
+  TextField,
+  Button,
+  CircularProgress,
+  Chip,
   Table,
   TableBody,
   TableCell,
   TableRow,
-  TextField,
-  Button,
-  CircularProgress,
+  Modal,
+  Box,
+  Typography,
+  Switch,
 } from "@mui/material";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import SideNav from "../../components/SideNav";
-import axios from "axios";
+import TopNav from "../../components/TopNav";
 import Cookies from "js-cookie";
-import Loader from "../../components/Loader";
 import dayjs from "dayjs";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import FilterListIcon from "@mui/icons-material/FilterList";
+import axios from "axios";
 
 const BankAccountList = () => {
   // Define min and max allowed dates
@@ -32,38 +38,49 @@ const BankAccountList = () => {
   const maxAllowedDate = dayjs().format("YYYY-MM-DD");
 
   const [resultsPerPage, setResultsPerPage] = useState(10);
-  const [transactions, setTransactions] = useState([]);
-  const [email, setEmail] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState(maxAllowedDate);
-  const [pagination, setPagination] = useState({
-    current_page: 1,
-    total_pages: 1,
-  });
-  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [accounts, setAccounts] = useState([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const [selectedTransaction, setSelectedTransaction] = useState(null);
-  const [resetTrigger, setResetTrigger] = useState(false);
-  const [currency, setcurrency] = useState("");
+  const [selectedAccount, setSelectedAccount] = useState(null);
+  const [exporting, setExporting] = useState(false);
+  const [openFilter, setOpenFilter] = useState(false);
+
+  // Filter states
+  const [filters, setFilters] = useState({
+    email: "",
+    currency: "",
+    start_date: "",
+    end_date: maxAllowedDate,
+  });
+  const [appliedFilters, setAppliedFilters] = useState({
+    email: "",
+    currency: "",
+    start_date: "",
+    end_date: maxAllowedDate,
+  });
+
+  // Validation states
   const [emailError, setEmailError] = useState("");
   const [startDateError, setStartDateError] = useState("");
   const [endDateError, setEndDateError] = useState("");
-  const [exporting, setExporting] = useState(false); // Added exporting state
 
   const token = Cookies.get("authToken");
 
-  const getData = async (page = 1, pageSize = resultsPerPage) => {
+  const fetchAccounts = async (page = 1, pageSize = resultsPerPage) => {
     setLoading(true);
     try {
       const params = {
-        email: email || undefined,
-        start_date: startDate || undefined,
-        end_date: endDate || undefined,
-        currency: currency || undefined,
+        email: appliedFilters.email || undefined,
+        start_date: appliedFilters.start_date || undefined,
+        end_date: appliedFilters.end_date || undefined,
+        currency: appliedFilters.currency || undefined,
         page,
         page_size: pageSize,
       };
 
+      // Remove undefined parameters
       Object.keys(params).forEach(
         (key) => params[key] === undefined && delete params[key]
       );
@@ -77,12 +94,10 @@ const BankAccountList = () => {
       );
 
       if (res.data.status === 200) {
-        const { accounts, pagination: pg } = res.data.data;
-        setTransactions(accounts);
-        setPagination({
-          current_page: pg.current_page,
-          total_pages: pg.total_pages,
-        });
+        const { accounts: accts, pagination: pg } = res.data.data;
+        setAccounts(accts);
+        setTotalPages(pg.total_pages);
+        setCurrentPage(pg.current_page);
       }
     } catch (error) {
       console.error(error);
@@ -92,25 +107,25 @@ const BankAccountList = () => {
   };
 
   useEffect(() => {
-    if (token) getData();
-  }, [token]);
-
-  useEffect(() => {
-    if (resetTrigger) {
-      getData(1);
-      setResetTrigger(false);
-    }
-  }, [resetTrigger]);
-
-  const handleChange = (event) => {
-    const value = event.target.value;
-    setResultsPerPage(value);
-    getData(1, value);
-  };
+    if (token) fetchAccounts();
+  }, [token, appliedFilters, resultsPerPage]);
 
   const handlePageChange = (event, page) => {
-    setPagination((prev) => ({ ...prev, current_page: page }));
-    getData(page, resultsPerPage);
+    setCurrentPage(page);
+  };
+
+  const handleResultsPerPageChange = (event) => {
+    setResultsPerPage(event.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleFilterChange = (name, value) => {
+    setFilters((prev) => ({ ...prev, [name]: value }));
+    
+    // Clear errors when field changes
+    if (name === "email") setEmailError("");
+    if (name === "start_date") setStartDateError("");
+    if (name === "end_date") setEndDateError("");
   };
 
   const validateForm = () => {
@@ -122,7 +137,7 @@ const BankAccountList = () => {
     setEndDateError("");
 
     // Email validation
-    const trimmedEmail = email.trim();
+    const trimmedEmail = filters.email.trim();
 
     if (
       trimmedEmail &&
@@ -130,13 +145,11 @@ const BankAccountList = () => {
     ) {
       setEmailError("Invalid email address");
       isValid = false;
-    } else {
-      setEmailError("");
     }
 
     // Start date validation
-    if (startDate) {
-      const start = dayjs(startDate);
+    if (filters.start_date) {
+      const start = dayjs(filters.start_date);
       const minDate = dayjs(minAllowedDate);
       const maxDate = dayjs(maxAllowedDate);
 
@@ -154,8 +167,8 @@ const BankAccountList = () => {
     }
 
     // End date validation
-    if (endDate) {
-      const end = dayjs(endDate);
+    if (filters.end_date) {
+      const end = dayjs(filters.end_date);
       const minDate = dayjs(minAllowedDate);
       const maxDate = dayjs(maxAllowedDate);
 
@@ -173,9 +186,9 @@ const BankAccountList = () => {
     }
 
     // Cross validation between dates
-    if (startDate && endDate) {
-      const start = dayjs(startDate);
-      const end = dayjs(endDate);
+    if (filters.start_date && filters.end_date) {
+      const start = dayjs(filters.start_date);
+      const end = dayjs(filters.end_date);
 
       if (end.isBefore(start)) {
         setEndDateError("End date must be after start date");
@@ -186,28 +199,41 @@ const BankAccountList = () => {
     return isValid;
   };
 
-  const handleFilterSubmit = (e) => {
-    e.preventDefault();
+  const applyFilters = () => {
     if (validateForm()) {
-      getData(1);
+      setAppliedFilters({ ...filters });
+      setCurrentPage(1);
+      setOpenFilter(false);
     }
   };
 
   const resetFilters = () => {
-    setEmail("");
-    setStartDate("");
-    setEndDate(maxAllowedDate);
-    setcurrency("");
+    setFilters({
+      email: "",
+      currency: "",
+      start_date: "",
+      end_date: maxAllowedDate,
+    });
+    setAppliedFilters({
+      email: "",
+      currency: "",
+      start_date: "",
+      end_date: maxAllowedDate,
+    });
     setEmailError("");
     setStartDateError("");
     setEndDateError("");
-    setResetTrigger(true);
+    setCurrentPage(1);
+    setOpenFilter(false);
   };
 
-  const handleViewDetails = (txn) => {
-    setSelectedTransaction(txn);
+  const handleViewDetails = (account) => {
+    setSelectedAccount(account);
     setOpen(true);
   };
+
+  const handleOpenFilter = () => setOpenFilter(true);
+  const handleCloseFilter = () => setOpenFilter(false);
 
   // Format key for display in modal
   const formatKey = (key) => {
@@ -219,37 +245,42 @@ const BankAccountList = () => {
 
   // Get custom no data message
   const getNoDataMessage = () => {
-    if (!email && !startDate && !endDate && !currency) {
+    if (
+      !appliedFilters.email &&
+      !appliedFilters.currency &&
+      !appliedFilters.start_date &&
+      !appliedFilters.end_date
+    ) {
       return "No bank accounts found";
     }
 
     let message = "No bank accounts found";
-    const filters = [];
+    const filterLabels = [];
 
-    if (email) filters.push(`email: ${email}`);
-    if (currency) filters.push(`currency: ${currency}`);
-    if (startDate)
-      filters.push(`from ${dayjs(startDate).format("DD/MM/YYYY")}`);
-    if (endDate) filters.push(`to ${dayjs(endDate).format("DD/MM/YYYY")}`);
+    if (appliedFilters.email) filterLabels.push(`email: ${appliedFilters.email}`);
+    if (appliedFilters.currency) filterLabels.push(`currency: ${appliedFilters.currency}`);
+    if (appliedFilters.start_date)
+      filterLabels.push(`from ${dayjs(appliedFilters.start_date).format("DD/MM/YYYY")}`);
+    if (appliedFilters.end_date)
+      filterLabels.push(`to ${dayjs(appliedFilters.end_date).format("DD/MM/YYYY")}`);
 
-    if (filters.length > 0) {
-      message += ` with ${filters.join(" and ")}`;
+    if (filterLabels.length > 0) {
+      message += ` with ${filterLabels.join(", ")}`;
     }
 
     return message;
   };
 
-  // NEW EXPORT FUNCTIONALITY
   const fetchExportData = async () => {
     if (!validateForm()) return;
 
     setExporting(true);
     try {
       const params = {
-        email: email || undefined,
-        start_date: startDate || undefined,
-        end_date: endDate || undefined,
-        currency: currency || undefined,
+        email: appliedFilters.email || undefined,
+        start_date: appliedFilters.start_date || undefined,
+        end_date: appliedFilters.end_date || undefined,
+        currency: appliedFilters.currency || undefined,
       };
 
       Object.keys(params).forEach(
@@ -265,8 +296,8 @@ const BankAccountList = () => {
       );
 
       if (res.data.status === 200) {
-        const { accounts } = res.data.data;
-        if (accounts.length === 0) {
+        const { accounts: accts } = res.data.data;
+        if (accts.length === 0) {
           alert("No data to export");
           return;
         }
@@ -276,7 +307,7 @@ const BankAccountList = () => {
         const fileName = `bank_accounts_${timestamp}`;
 
         // Flatten accounts for CSV
-        const flattenedAccounts = accounts.map((account) => ({
+        const flattenedAccounts = accts.map((account) => ({
           id: account.id,
           created_at: account.created_at,
           account_number: account.account_number,
@@ -347,350 +378,409 @@ const BankAccountList = () => {
 
   return (
     <>
-      {loading ? (
-        <Loader />
-      ) : (
-        <div className="container py-5 mb-lg-4">
-          <div className="row pt-sm-2 pt-lg-0">
+      <div className="container-fluid p-0">
+        <TopNav />
+        <div className="row m-0">
+          <div className="col-3 p-0" style={{ maxHeight: "100%", overflowY: "auto" }}>
             <SideNav />
+          </div>
+          <div className="col-9">
+            <div className="row m-0">
+              <div
+                className="col-12 py-3"
+                style={{ background: "#EEEEEE", minHeight: "93vh" }}
+              >
+                <div className="frame-1597880849">
+                  <div className="all-members-list">Bank Accounts</div>
 
-            <div className="col-lg-9 pt-4 pb-2 pb-sm-4">
-              <div className="d-sm-flex align-items-center mb-4">
-                <h1 className="h2 mb-4 mb-sm-0 me-4">Bank Account List</h1>
-              </div>
-
-              <div className="card shadow border-0">
-                <div className="card-body">
-                  <form onSubmit={handleFilterSubmit} className="">
-                    <div className="row g-3">
-                      <div className="col-md-3">
-                        <TextField
-                          label="Email"
-                          value={email}
-                          onChange={(e) => {
-                            setEmail(e.target.value);
-                            if (emailError) setEmailError("");
-                          }}
-                          error={!!emailError}
-                          helperText={emailError}
-                          fullWidth
-                          size="small"
-                        />
-                      </div>
-                      <div className="col-md-3">
-                        <FormControl fullWidth size="small">
-                          <InputLabel id="currency-label">Currency</InputLabel>
-                          <Select
-                            labelId="currency-label"
-                            id="currency-select"
-                            value={currency}
-                            label="Currency"
-                            onChange={(e) => setcurrency(e.target.value)}
-                          >
-                            <MenuItem value="">All Currencies</MenuItem>
-                            <MenuItem value="AED">AED</MenuItem>
-                            <MenuItem value="USD">USD</MenuItem>
-                            <MenuItem value="GBP">GBP</MenuItem>
-                            <MenuItem value="EUR">EUR</MenuItem>
-                          </Select>
-                        </FormControl>
-                      </div>
-                      <div className="col-md-3">
-                        <TextField
-                          label="Start Date"
-                          type="date"
-                          InputLabelProps={{ shrink: true }}
-                          value={startDate}
-                          onChange={(e) => {
-                            setStartDate(e.target.value);
-                            if (startDateError) setStartDateError("");
-                          }}
-                          inputProps={{
-                            min: minAllowedDate,
-                            max: maxAllowedDate,
-                          }}
-                          error={!!startDateError}
-                          helperText={startDateError}
-                          fullWidth
-                          size="small"
-                        />
-                      </div>
-
-                      <div className="col-md-3">
-                        <TextField
-                          label="End Date"
-                          type="date"
-                          InputLabelProps={{ shrink: true }}
-                          value={endDate}
-                          onChange={(e) => {
-                            setEndDate(e.target.value);
-                            if (endDateError) setEndDateError("");
-                          }}
-                          inputProps={{
-                            min: startDate || minAllowedDate,
-                            max: maxAllowedDate,
-                          }}
-                          disabled={!startDate}
-                          error={!!endDateError}
-                          helperText={endDateError}
-                          fullWidth
-                          size="small"
-                        />
-                      </div>
-
-                      <div className="col-md-2 d-flex align-items-end">
-                        <Button
-                          variant="contained"
-                          color="primary"
-                          type="submit"
-                          fullWidth
-                        >
-                          Apply
-                        </Button>
-                      </div>
-                      <div className="col-md-2 d-flex align-items-end">
-                        <Button
-                          variant="outlined"
-                          color="light"
-                          onClick={resetFilters}
-                          fullWidth
-                        >
-                          Reset
-                        </Button>
-                      </div>
-                      {/* Added Export Button */}
-                      <div className="col-md-2 d-flex align-items-end">
-                        <Button
-                          variant="contained"
-                          className="w-100"
-                          color="success"
-                          onClick={fetchExportData}
-                          disabled={exporting}
-                        >
-                          {exporting ? (
-                            <CircularProgress size={24} color="inherit" />
-                          ) : (
-                            "Export"
-                          )}
-                        </Button>
-                      </div>
+                  <div className="frame-1597880735">
+                    <div className="frame-1597880734">
+                      <Button
+                        variant="contained"
+                        className="excel"
+                        sx={{ padding: "0 16px", height: "48px" }}
+                        onClick={fetchExportData}
+                        disabled={exporting}
+                      >
+                        {exporting ? (
+                          <CircularProgress size={24} color="inherit" />
+                        ) : (
+                          <><FileDownloadIcon className="me-2" /> Export</>
+                        )}
+                      </Button>
                     </div>
-                  </form>
-                </div>
-              </div>
 
-              <div className="card shadow border-0 mt-3">
-                <div className="card-body">
-                  <div className="overflow-auto">
-                    {transactions.length === 0 ? (
-                      <div className="text-center">{getNoDataMessage()}</div>
-                    ) : (
-                      <>
-                        <table className="table">
-                          <thead>
+                    <div className="frame-15978807352">
+                      <Button
+                        variant="contained"
+                        startIcon={<FilterListIcon />}
+                        className="filter"
+                        sx={{ padding: "0 16px", height: "48px" }}
+                        disableElevation
+                        onClick={handleOpenFilter}
+                      >
+                        Filter
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card mw-100 mt-5 rounded-4 border-0">
+                  <div className="card-body">
+                    <div className="overflow-auto ">
+                      <table className="table table-responsive">
+                        <thead>
+                          <tr
+                            className="rounded-4"
+                            style={{ backgroundColor: "#EEEEEE" }}
+                          >
+                            <th>#</th>
+                            <th className="main-table">USER NAME</th>
+                            <th className="main-table">EMAIL</th>
+                            <th className="main-table">ACCOUNT NUMBER</th>
+                            <th className="main-table">CURRENCY</th>
+                            <th className="main-table">BALANCE</th>
+                            <th className="text-center">ACTION</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {loading ? (
                             <tr>
-                              <th>#</th>
-                              <th>User Name</th>
-                              <th>User Email</th>
-                              <th>A/C No.</th>
-                              <th>Currency</th>
-                              <th>Amount</th>
-                              <th>Action</th>
+                              <td colSpan={7} className="text-center py-5">
+                                <CircularProgress />
+                              </td>
                             </tr>
-                          </thead>
-                          <tbody>
-                            {transactions.map((txn, idx) => (
-                              <tr key={txn.id}>
+                          ) : accounts.length === 0 ? (
+                            <tr>
+                              <td colSpan={7} className="text-center py-5">
+                                {getNoDataMessage()}
+                              </td>
+                            </tr>
+                          ) : (
+                            accounts.map((account, index) => (
+                              <tr key={account.id}>
                                 <td>
-                                  {(pagination.current_page - 1) *
-                                    resultsPerPage +
-                                    idx +
-                                    1}
+                                  {(currentPage - 1) * resultsPerPage + index + 1}
                                 </td>
-                                <td>{txn.user_details?.full_name || "N/A"}</td>
-                                <td>{txn.user_details?.email || "N/A"}</td>
-                                <td>{txn.account_number || "N/A"}</td>
-                                <td>{txn.currency || "N/A"}</td>
-                                <td>{txn.balance || "0.00"}</td>
+                                <td className="main-table">{account.user_details?.full_name || "N/A"}</td>
+                                <td className="main-table">{account.user_details?.email || "N/A"}</td>
+                                <td className="main-table">{account.account_number || "N/A"}</td>
+                                <td className="main-table">{account.currency || "N/A"}</td>
+                                <td className="main-table">{account.balance || "0.00"}</td>
                                 <td>
-                                  <Tooltip title="View Details">
-                                    <IconButton
-                                      color="info"
-                                      onClick={() => handleViewDetails(txn)}
-                                    >
-                                      <VisibilityRoundedIcon />
-                                    </IconButton>
-                                  </Tooltip>
+                                  <div className="d-flex justify-content-around">
+                                    <Tooltip title="View Details">
+                                      <IconButton
+                                        color="info"
+                                        onClick={() => handleViewDetails(account)}
+                                      >
+                                        <VisibilityRoundedIcon />
+                                      </IconButton>
+                                    </Tooltip>
+                                  </div>
                                 </td>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
 
-                        <div className="container-fluid mb-3">
-                          <div className="row">
-                            <div className="col-3">
-                              <FormControl variant="standard" fullWidth>
-                                <InputLabel id="results-label">
-                                  Results
-                                </InputLabel>
-                                <Select
-                                  labelId="results-label"
-                                  id="results-select"
-                                  value={resultsPerPage}
-                                  onChange={handleChange}
-                                >
-                                  <MenuItem value={10}>10</MenuItem>
-                                  <MenuItem value={25}>25</MenuItem>
-                                  <MenuItem value={50}>50</MenuItem>
-                                  <MenuItem value={100}>100</MenuItem>
-                                </Select>
-                              </FormControl>
-                            </div>
-                            <div className="col-9 d-flex justify-content-end">
-                              <Pagination
-                                count={pagination.total_pages}
-                                page={pagination.current_page}
-                                onChange={handlePageChange}
-                                color="primary"
-                                disabled={transactions.length === 0}
-                              />
-                            </div>
-                          </div>
+                    <div className="container-fluid mt-4 mb-3">
+                      <div className="row align-items-center">
+                        <div className="col-md-3">
+                          <FormControl variant="standard" fullWidth>
+                            <InputLabel id="results-label">
+                              Results per page
+                            </InputLabel>
+                            <Select
+                              labelId="results-label"
+                              id="results-select"
+                              value={resultsPerPage}
+                              onChange={handleResultsPerPageChange}
+                            >
+                              <MenuItem value={10}>10</MenuItem>
+                              <MenuItem value={25}>25</MenuItem>
+                              <MenuItem value={50}>50</MenuItem>
+                              <MenuItem value={100}>100</MenuItem>
+                            </Select>
+                          </FormControl>
                         </div>
-                      </>
-                    )}
-
-                    <Dialog
-                      open={open}
-                      onClose={() => setOpen(false)}
-                      maxWidth="md"
-                      fullWidth
-                    >
-                      <DialogTitle>Bank Account Details</DialogTitle>
-                      <DialogContent
-                        style={{ maxHeight: "80vh", overflow: "auto" }}
-                      >
-                        {selectedTransaction ? (
-                          <Table>
-                            <TableBody>
-                              {/* User Details */}
-                              {selectedTransaction.user_details && (
-                                <>
-                                  <TableRow>
-                                    <TableCell>
-                                      <strong>User Name</strong>
-                                    </TableCell>
-                                    <TableCell>
-                                      {selectedTransaction.user_details
-                                        .full_name || "N/A"}
-                                    </TableCell>
-                                  </TableRow>
-                                  <TableRow>
-                                    <TableCell>
-                                      <strong>User Email</strong>
-                                    </TableCell>
-                                    <TableCell>
-                                      {selectedTransaction.user_details.email ||
-                                        "N/A"}
-                                    </TableCell>
-                                  </TableRow>
-                                  <TableRow>
-                                    <TableCell>
-                                      <strong>User Phone</strong>
-                                    </TableCell>
-                                    <TableCell>
-                                      {selectedTransaction.user_details
-                                        .phone_number || "N/A"}
-                                    </TableCell>
-                                  </TableRow>
-                                </>
-                              )}
-
-                              {/* Account Details */}
-                              <TableRow>
-                                <TableCell>
-                                  <strong>Account Number</strong>
-                                </TableCell>
-                                <TableCell>
-                                  {selectedTransaction.account_number || "N/A"}
-                                </TableCell>
-                              </TableRow>
-                              <TableRow>
-                                <TableCell>
-                                  <strong>Currency</strong>
-                                </TableCell>
-                                <TableCell>
-                                  {selectedTransaction.currency || "N/A"}
-                                </TableCell>
-                              </TableRow>
-                              <TableRow>
-                                <TableCell>
-                                  <strong>Balance</strong>
-                                </TableCell>
-                                <TableCell>
-                                  {selectedTransaction.balance || "0.00"}
-                                </TableCell>
-                              </TableRow>
-                              <TableRow>
-                                <TableCell>
-                                  <strong>Bank Name</strong>
-                                </TableCell>
-                                <TableCell>
-                                  {selectedTransaction.bank_name || "N/A"}
-                                </TableCell>
-                              </TableRow>
-                              <TableRow>
-                                <TableCell>
-                                  <strong>Account Holder</strong>
-                                </TableCell>
-                                <TableCell>
-                                  {selectedTransaction.account_holder_name ||
-                                    "N/A"}
-                                </TableCell>
-                              </TableRow>
-
-                              {/* Additional Fields */}
-                              {Object.entries(selectedTransaction)
-                                .filter(
-                                  ([key]) =>
-                                    ![
-                                      "user_details",
-                                      "account_number",
-                                      "currency",
-                                      "balance",
-                                      "bank_name",
-                                      "account_holder_name",
-                                    ].includes(key)
-                                )
-                                .map(([key, value]) => (
-                                  <TableRow key={key}>
-                                    <TableCell>
-                                      <strong>{formatKey(key)}</strong>
-                                    </TableCell>
-                                    <TableCell>
-                                      {typeof value === "object"
-                                        ? JSON.stringify(value, null, 2)
-                                        : value}
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                            </TableBody>
-                          </Table>
-                        ) : (
-                          <DialogContentText>
-                            No account details available
-                          </DialogContentText>
-                        )}
-                      </DialogContent>
-                    </Dialog>
+                        <div className="col-md-9 d-flex justify-content-end">
+                          <Pagination
+                            count={totalPages}
+                            page={currentPage}
+                            onChange={handlePageChange}
+                            color="primary"
+                            disabled={accounts.length === 0}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      )}
+      </div>
+
+      {/* Filter Modal */}
+      <Modal
+        open={openFilter}
+        onClose={handleCloseFilter}
+        aria-labelledby="filter-modal-title"
+        aria-describedby="filter-modal-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 700,
+            bgcolor: "#fff",
+            boxShadow: 24,
+            p: 3,
+            borderRadius: "12px",
+          }}
+        >
+          <Typography
+            id="filter-modal-title"
+            className="fw-semibold"
+            variant="h6"
+            component="h2"
+          >
+            Search Records
+          </Typography>
+          <hr />
+
+          <div className="row g-3 mt-3">
+            <div className="col-md-6">
+              <label className="form-label">Email</label>
+              <TextField
+                fullWidth
+                value={filters.email}
+                onChange={(e) => handleFilterChange("email", e.target.value)}
+                error={!!emailError}
+                helperText={emailError}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    backgroundColor: "#f5f5f5",
+                  },
+                }}
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Currency</label>
+              <FormControl fullWidth>
+                <Select
+                  value={filters.currency}
+                  onChange={(e) => handleFilterChange("currency", e.target.value)}
+                  sx={{
+                    "& .MuiSelect-select": {
+                      borderRadius: "12px",
+                      backgroundColor: "#f5f5f5",
+                    },
+                  }}
+                >
+                  <MenuItem value="">All Currencies</MenuItem>
+                  <MenuItem value="AED">AED</MenuItem>
+                  <MenuItem value="USD">USD</MenuItem>
+                  <MenuItem value="GBP">GBP</MenuItem>
+                  <MenuItem value="EUR">EUR</MenuItem>
+                </Select>
+              </FormControl>
+            </div>
+
+            <div className="col-md-6">
+              <label className="form-label">Start Date</label>
+              <TextField
+                fullWidth
+                type="date"
+                value={filters.start_date}
+                onChange={(e) =>
+                  handleFilterChange("start_date", e.target.value)
+                }
+                InputLabelProps={{ shrink: true }}
+                error={!!startDateError}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    backgroundColor: "#f5f5f5",
+                  },
+                }}
+                helperText={startDateError || ""}
+                inputProps={{
+                  min: minAllowedDate,
+                  max: maxAllowedDate,
+                }}
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">End Date</label>
+              <TextField
+                fullWidth
+                type="date"
+                value={filters.end_date}
+                onChange={(e) => handleFilterChange("end_date", e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                error={!!endDateError}
+                helperText={endDateError || ""}
+                disabled={!filters.start_date}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    backgroundColor: "#f5f5f5",
+                  },
+                }}
+                inputProps={{
+                  min: filters.start_date || minAllowedDate,
+                  max: maxAllowedDate,
+                }}
+              />
+            </div>
+            <div className="col-6 mt-4">
+              <Button
+                variant="contained"
+                onClick={applyFilters}
+                className="me-2 w-100"
+                sx={{ height: "45px" }}
+              >
+                Apply
+              </Button>
+            </div>
+            <div className="col-6 mt-4">
+              <Button
+                variant="outlined"
+                className="w-100"
+                onClick={resetFilters}
+                sx={{ height: "45px" }}
+              >
+                Reset
+              </Button>
+            </div>
+          </div>
+        </Box>
+      </Modal>
+
+      {/* Account Details Dialog */}
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Bank Account Details</DialogTitle>
+        <DialogContent style={{ maxHeight: "80vh", overflow: "auto" }}>
+          {selectedAccount ? (
+            <Table>
+              <TableBody>
+                {/* User Details */}
+                {selectedAccount.user_details && (
+                  <>
+                    <TableRow>
+                      <TableCell style={{ width: "30%" }}>
+                        <strong>User Name</strong>
+                      </TableCell>
+                      <TableCell>
+                        {selectedAccount.user_details.full_name || "N/A"}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>
+                        <strong>User Email</strong>
+                      </TableCell>
+                      <TableCell>
+                        {selectedAccount.user_details.email || "N/A"}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>
+                        <strong>User Phone</strong>
+                      </TableCell>
+                      <TableCell>
+                        {selectedAccount.user_details.phone_number || "N/A"}
+                      </TableCell>
+                    </TableRow>
+                  </>
+                )}
+
+                {/* Account Details */}
+                <TableRow>
+                  <TableCell>
+                    <strong>Account Number</strong>
+                  </TableCell>
+                  <TableCell>
+                    {selectedAccount.account_number || "N/A"}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>
+                    <strong>Currency</strong>
+                  </TableCell>
+                  <TableCell>
+                    {selectedAccount.currency || "N/A"}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>
+                    <strong>Balance</strong>
+                  </TableCell>
+                  <TableCell>
+                    {selectedAccount.balance || "0.00"}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>
+                    <strong>Bank Name</strong>
+                  </TableCell>
+                  <TableCell>
+                    {selectedAccount.bank_name || "N/A"}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>
+                    <strong>Account Holder</strong>
+                  </TableCell>
+                  <TableCell>
+                    {selectedAccount.account_holder_name || "N/A"}
+                  </TableCell>
+                </TableRow>
+
+                {/* Additional Fields */}
+                {Object.entries(selectedAccount)
+                  .filter(
+                    ([key]) =>
+                      ![
+                        "user_details",
+                        "account_number",
+                        "currency",
+                        "balance",
+                        "bank_name",
+                        "account_holder_name",
+                      ].includes(key)
+                  )
+                  .map(([key, value]) => (
+                    <TableRow key={key}>
+                      <TableCell>
+                        <strong>{formatKey(key)}</strong>
+                      </TableCell>
+                      <TableCell>
+                        {typeof value === "object"
+                          ? JSON.stringify(value, null, 2)
+                          : value}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-center py-4">No account details available</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

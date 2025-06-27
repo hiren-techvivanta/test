@@ -28,6 +28,18 @@ import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import SideNav from "../../components/SideNav";
 import dayjs from "dayjs";
 import Cookies from "js-cookie";
+import TopNav from "../../components/TopNav";
+import { InputAdornment, Modal, Box, Typography } from "@mui/material";
+
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import SearchIcon from "@mui/icons-material/Search";
+import EmailIcon from "@mui/icons-material/Email";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import FilterListIcon from "@mui/icons-material/FilterList";
+import RemoveRedEyeRoundedIcon from "@mui/icons-material/RemoveRedEyeRounded";
+import BlockRoundedIcon from "@mui/icons-material/BlockRounded";
+import RemoveCircleOutlineRoundedIcon from "@mui/icons-material/RemoveCircleOutlineRounded";
+import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 
 const UserList = () => {
   const [users, setUsers] = useState([]);
@@ -57,6 +69,12 @@ const UserList = () => {
   const [emailError, setEmailError] = useState("");
   const [mobileError, setMobileError] = useState("");
   const [dateError, setDateError] = useState("");
+
+  const [showing, setShowing] = useState(10);
+  const [openFilter, setOpenFilter] = useState(false);
+
+  const handleOpenFilter = () => setOpenFilter(true);
+  const handleCloseFilter = () => setOpenFilter(false);
 
   const token = Cookies.get("authToken");
 
@@ -399,263 +417,342 @@ const UserList = () => {
   };
 
   return (
-    <div className="container py-5 mb-lg-4 ">
-      <div className="row pt-sm-2 pt-lg-0">
-        <SideNav />
-
-        <div className="col-lg-9 pt-4 pb-2 pb-sm-4">
-          <div className="d-sm-flex align-items-center mb-4">
-            <h1 className="h2 mb-4 mb-sm-0 me-4">Users List</h1>
+    <>
+      <div className="container-fluid p-0">
+        <TopNav />
+        <div className="row m-0">
+          <div className="col-3 p-0" style={{maxHeight: "100%", overflowY: "auto"}}>
+            <SideNav />
           </div>
+          <div className="col-9">
+            <div className="row m-0">
+              <div
+                className="col-12 py-3"
+                style={{ background: "#EEEEEE", minHeight: "93vh" }}
+              >
+                <div className="frame-1597880849">
+                  <div className="all-members-list">Users List</div>
 
-          {/* Filter Section */}
-          <div className="card shadow border-0 mb-4">
-            <div className="card-body">
-              <div className="row g-3">
-                <div className="col-md-4">
-                  <TextField
-                    fullWidth
-                    label="Email"
-                    value={filters.email}
-                    onChange={(e) =>
-                      handleFilterChange("email", e.target.value)
-                    }
-                    error={!!emailError}
-                    helperText={emailError}
-                    size="small"
-                  />
-                </div>
-                <div className="col-md-4">
-                  <TextField
-                    fullWidth
-                    label="Mobile Number"
-                    value={filters.mobile_number}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value === "" || /^\d{0,10}$/.test(value)) {
-                        handleFilterChange("mobile_number", value);
-                      }
-                    }}
-                    error={!!mobileError}
-                    helperText={mobileError}
-                    size="small"
-                    inputProps={{ maxLength: 10 }}
-                  />
-                </div>
-                <div className="col-md-4">
-                  <FormControl fullWidth size="small">
-                    <InputLabel>KYC Status</InputLabel>
-                    <Select
-                      value={filters.kyc_status}
-                      label="KYC Status"
-                      onChange={(e) =>
-                        handleFilterChange("kyc_status", e.target.value)
-                      }
-                    >
-                      <MenuItem value="">All</MenuItem>
-                      <MenuItem value="approved">Approved</MenuItem>
-                      <MenuItem value="pending">Pending</MenuItem>
-                      <MenuItem value="rejected">Rejected</MenuItem>
-                      <MenuItem value="not_submitted">Not Submitted</MenuItem>
-                    </Select>
-                  </FormControl>
-                </div>
-                <div className="col-md-4">
-                  <TextField
-                    fullWidth
-                    label="Start Date"
-                    type="date"
-                    value={filters.start_date}
-                    onChange={(e) =>
-                      handleFilterChange("start_date", e.target.value)
-                    }
-                    InputLabelProps={{ shrink: true }}
-                    error={!!dateError}
-                    helperText={dateError ? "" : ``}
-                    size="small"
-                    inputProps={{
-                      min: minDate,
-                      max: today,
-                    }}
-                  />
-                </div>
-                <div className="col-md-4">
-                  <TextField
-                    fullWidth
-                    label="End Date"
-                    type="date"
-                    value={filters.end_date}
-                    onChange={(e) =>
-                      handleFilterChange("end_date", e.target.value)
-                    }
-                    InputLabelProps={{ shrink: true }}
-                    error={!!dateError}
-                    helperText={dateError || ``}
-                    size="small"
-                    inputProps={{
-                      min: minDate,
-                      max: today,
-                    }}
-                  />
-                </div>
-                <div className="col-md-4"></div>
-                <div className="col-2">
-                  <Button
-                    variant="contained"
-                    onClick={applyFilters}
-                    className="me-2 w-100"
-                  >
-                    Apply
-                  </Button>
-                </div>
-                <div className="col-2">
-                  <Button
-                    variant="outlined"
-                    className="w-100"
-                    onClick={resetFilters}
-                  >
-                    Reset
-                  </Button>
-                </div>
-                <div className="col-2">
-                  <Button
-                    variant="contained"
-                    className="w-100"
-                    color="success"
-                    onClick={fetchExportData}
-                    disabled={exporting}
-                  >
-                    {exporting ? (
-                      <CircularProgress size={24} color="inherit" />
-                    ) : (
-                      "Export"
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="card shadow border-0">
-            <div className="card-body">
-              <div className="row g-3 g-xl-4">
-                <div className="col-12">
-                  {loading ? (
-                    <div className="text-center py-5">
-                      <CircularProgress />
-                      <p className="mt-3">Loading users...</p>
+                  <div className="frame-1597880735">
+                    <div className="frame-1597880734">
+                      <Button
+                        variant="contained"
+                        className="excel"
+                        sx={{ padding: "0 16px", height: "48px" }}
+                        onClick={fetchExportData}
+                        disabled={exporting}
+                      >
+                        {exporting ? (
+                          <CircularProgress size={24} color="inherit" />
+                        ) : (
+                         <><FileDownloadIcon className="me-2"/> Export</> 
+                        )}
+                      </Button>
                     </div>
-                  ) : (
-                    <div className="overflow-auto">
-                      {users.length === 0 ? (
-                        <h6 className="text-center py-4">
-                          {getNoDataMessage()}
-                        </h6>
-                      ) : (
-                        <>
-                          <table className="table">
-                            <thead>
-                              <tr>
-                                <th>#</th>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Phone</th>
-                                <th>KYC Status</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {users.map((user) => (
-                                <tr key={user.sr_no}>
-                                  <td>{user.sr_no}</td>
-                                  <td>{user.full_name}</td>
-                                  <td>{user.email}</td>
-                                  <td>{user.phone_number}</td>
-                                  <td className="">
-                                    <span
-                                      className={`badge bg-${
-                                        user.kyc_status === "Approved"
-                                          ? "success"
-                                          : user.kyc_status === "Pending"
-                                          ? "warning"
-                                          : user.kyc_status === "Rejected"
-                                          ? "danger"
-                                          : "secondary"
-                                      }`}
-                                    >
-                                      {user.kyc_status}
-                                    </span>
-                                  </td>
-                                  <td>
-                                    <Switch />
-                                  </td>
-                                  <td>
-                                    <div className="d-flex justify-content-around">
-                                      <Tooltip title="Edit">
-                                        <IconButton color="primary">
-                                          <EditRoundedIcon />
-                                        </IconButton>
-                                      </Tooltip>
-                                      <Tooltip title="View Details">
-                                        <IconButton
-                                          color="info"
-                                          onClick={() =>
-                                            handleViewDetails(user)
-                                          }
-                                        >
-                                          <VisibilityRoundedIcon />
-                                        </IconButton>
-                                      </Tooltip>
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
 
-                          <div className="container-fluid mt-4 mb-3">
-                            <div className="row align-items-center">
-                              <div className="col-md-3">
-                                <FormControl variant="standard" fullWidth>
-                                  <InputLabel id="results-label">
-                                    Results per page
-                                  </InputLabel>
-                                  <Select
-                                    labelId="results-label"
-                                    id="results-select"
-                                    value={resultsPerPage}
-                                    onChange={handleResultsPerPageChange}
+                    <div className="frame-15978807352">
+                      <Button
+                        variant="contained"
+                        startIcon={<FilterListIcon />}
+                        className="filter"
+                        sx={{ padding: "0 16px", height: "48px" }}
+                        disableElevation
+                        onClick={handleOpenFilter}
+                      >
+                        Filter
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card mw-100 mt-5 rounded-4 border-0">
+                  <div className="card-body">
+                    <div className="overflow-auto ">
+                      <table className="table table-responsive">
+                        <thead>
+                          <tr
+                            className="rounded-4"
+                            style={{ backgroundColor: "#EEEEEE" }}
+                          >
+                            <th>#</th>
+                            <th className="main-table">NAME</th>
+                            <th className="main-table">EMAIL</th>
+                            <th className="main-table">PHONE</th>
+                            <th className="main-table">KYC STATUS</th>
+                            <th>USER STATUS</th>
+                            <th className="main-table text-center">ACTION</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {loading ? (
+                            <tr>
+                              <td colSpan={7} className="text-center py-5">
+                                <CircularProgress />
+                              </td>
+                            </tr>
+                          ) : users.length === 0 ? (
+                            <tr>
+                              <td colSpan={7} className="text-center py-5">
+                                {getNoDataMessage()}
+                              </td>
+                            </tr>
+                          ) : (
+                            users.map((user) => (
+                              <tr key={user.sr_no}>
+                                <td>{user.sr_no}</td>
+                                <td className="main-table">{user.full_name}</td>
+                                <td className="main-table">{user.email}</td>
+                                <td className="main-table">{user.phone_number}</td>
+                                <td className="main-table">
+                                  <span
+                                    className={`badge bg-${
+                                      user.kyc_status === "Approved"
+                                        ? "success"
+                                        : user.kyc_status === "Pending"
+                                        ? "warning"
+                                        : user.kyc_status === "Rejected"
+                                        ? "danger"
+                                        : "dark"
+                                    } py-2`}
                                   >
-                                    <MenuItem value={10}>10</MenuItem>
-                                    <MenuItem value={25}>25</MenuItem>
-                                    <MenuItem value={50}>50</MenuItem>
-                                    <MenuItem value={100}>100</MenuItem>
-                                  </Select>
-                                </FormControl>
-                              </div>
-                              <div className="col-md-9 d-flex justify-content-end">
-                                <Pagination
-                                  count={totalPages}
-                                  page={currentPage}
-                                  onChange={handlePageChange}
-                                  color="primary"
-                                  showFirstButton
-                                  showLastButton
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </>
-                      )}
+                                    {user.kyc_status}
+                                  </span>
+                                </td>
+                                <td>
+                                  <Switch />
+                                </td>
+                                <td className="main-table">
+                                  <div className="d-flex justify-content-around">
+                                    <Tooltip title="Edit">
+                                      <IconButton color="primary">
+                                        <EditRoundedIcon />
+                                      </IconButton>
+                                    </Tooltip>
+                                    <Tooltip title="View Details">
+                                      <IconButton
+                                        color="info"
+                                        onClick={() => handleViewDetails(user)}
+                                      >
+                                        <VisibilityRoundedIcon />
+                                      </IconButton>
+                                    </Tooltip>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
                     </div>
-                  )}
+
+                    <div className="container-fluid mt-4 mb-3">
+                      <div className="row align-items-center">
+                        <div className="col-md-3">
+                          <FormControl variant="standard" fullWidth>
+                            <InputLabel id="results-label">
+                              Results per page
+                            </InputLabel>
+                            <Select
+                              labelId="results-label"
+                              id="results-select"
+                              value={resultsPerPage}
+                              onChange={handleResultsPerPageChange}
+                            >
+                              <MenuItem value={10}>10</MenuItem>
+                              <MenuItem value={25}>25</MenuItem>
+                              <MenuItem value={50}>50</MenuItem>
+                              <MenuItem value={100}>100</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </div>
+                        <div className="col-md-9 d-flex justify-content-end">
+                          <Pagination
+                            count={totalPages}
+                            page={currentPage}
+                            onChange={handlePageChange}
+                            color="primary"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      <Modal
+        open={openFilter}
+        onClose={handleCloseFilter}
+        aria-labelledby="filter-modal-title"
+        aria-describedby="filter-modal-description"
+        sx={{}}
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 700,
+            bgcolor: "#fff",
+            boxShadow: 24,
+            p: 3,
+            borderRadius: "12px",
+          }}
+        >
+          <Typography
+            id="filter-modal-title"
+            className="fw-semibold"
+            variant="h6"
+            component="h2"
+          >
+            Search Records
+          </Typography>
+          <hr />
+
+          <div className="row g-3 mt-3">
+            <div className="col-md-6">
+              <label className="form-label">Email</label>
+              <TextField
+                fullWidth
+                value={filters.email}
+                onChange={(e) => handleFilterChange("email", e.target.value)}
+                error={!!emailError}
+                helperText={emailError}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    backgroundColor: "#f5f5f5",
+                  },
+                }}
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Mobile No.</label>
+              <TextField
+                fullWidth
+                value={filters.mobile_number}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === "" || /^\d{0,10}$/.test(value)) {
+                    handleFilterChange("mobile_number", value);
+                  }
+                }}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    backgroundColor: "#f5f5f5",
+                  },
+                }}
+                error={!!mobileError}
+                helperText={mobileError}
+                inputProps={{ maxLength: 10 }}
+              />
+            </div>
+
+            <div className="col-md-6">
+              <label className="form-label">Start Date</label>
+              <TextField
+                fullWidth
+                type="date"
+                value={filters.start_date}
+                onChange={(e) =>
+                  handleFilterChange("start_date", e.target.value)
+                }
+                InputLabelProps={{ shrink: true }}
+                error={!!dateError}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    backgroundColor: "#f5f5f5",
+                  },
+                }}
+                helperText={dateError ? "" : ``}
+                inputProps={{
+                  min: minDate,
+                  max: today,
+                }}
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">End Date</label>
+              <TextField
+                fullWidth
+                type="date"
+                value={filters.end_date}
+                onChange={(e) => handleFilterChange("end_date", e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                error={!!dateError}
+                helperText={dateError || ``}
+                disabled={!filters.start_date}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    backgroundColor: "#f5f5f5",
+                  },
+                }}
+                inputProps={{
+                  min: filters.start_date || minDate,
+                  max: today,
+                }}
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">KYC Status</label>
+              <FormControl fullWidth>
+                <Select
+                  value={filters.kyc_status}
+                  onChange={(e) =>
+                    handleFilterChange("kyc_status", e.target.value)
+                  }
+                  sx={{
+                    "& .MuiSelect-select": {
+                      borderRadius: "12px",
+                      backgroundColor: "#f5f5f5",
+                    },
+                  }}
+                >
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="approved">Approved</MenuItem>
+                  <MenuItem value="pending">Pending</MenuItem>
+                  <MenuItem value="rejected">Rejected</MenuItem>
+                  <MenuItem value="not_submitted">Not Submitted</MenuItem>
+                </Select>
+              </FormControl>
+            </div>
+            <div className="col-md-6"></div>
+            <div className="col-6">
+              <Button
+                variant="contained"
+                onClick={() => {
+                  setOpenFilter(false);
+                  applyFilters();
+                }}
+                className="me-2 w-100"
+                sx={{ height: "45px" }}
+              >
+                Apply
+              </Button>
+            </div>
+            <div className="col-6">
+              <Button
+                variant="outlined"
+                className="w-100"
+                onClick={() => {
+                  setOpenFilter(false);
+                  resetFilters();
+                }}
+                sx={{ height: "45px" }}
+              >
+                Reset
+              </Button>
+            </div>
+          </div>
+        </Box>
+      </Modal>
 
       {/* User Details Dialog */}
       <Dialog
@@ -807,7 +904,7 @@ const UserList = () => {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 };
 

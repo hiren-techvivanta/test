@@ -10,29 +10,31 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogContentText,
   Table,
   TableBody,
   TableCell,
   TableRow,
-  Typography,
   TextField,
   Button,
   CircularProgress,
+  Chip,
+  Modal,
+  Box,
+  Typography,
 } from "@mui/material";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import SideNav from "../../../components/SideNav";
+import TopNav from "../../../components/TopNav";
 import axios from "axios";
 import Cookies from "js-cookie";
 import dayjs from "dayjs";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import FilterListIcon from "@mui/icons-material/FilterList";
 import Loader from "../../../components/Loader";
 
 const MoneyArtTransaction = () => {
   const [resultsPerPage, setResultsPerPage] = useState(10);
   const [transactions, setTransactions] = useState([]);
-  const [email, setEmail] = useState("");
-  const [mobile, setMobile] = useState("");
-  const [startDate, setStartDate] = useState("");
   const [pagination, setPagination] = useState({
     current_page: 1,
     total_pages: 1,
@@ -42,6 +44,22 @@ const MoneyArtTransaction = () => {
   const [open, setOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [resetTrigger, setResetTrigger] = useState(false);
+  const [openFilter, setOpenFilter] = useState(false);
+  const [showing, setShowing] = useState(10);
+
+  // Filter states
+  const [filters, setFilters] = useState({
+    email: "",
+    mobile_number: "",
+    start_date: "",
+    end_date: "",
+  });
+  const [appliedFilters, setAppliedFilters] = useState({
+    email: "",
+    mobile_number: "",
+    start_date: "",
+    end_date: "",
+  });
 
   // Validation states
   const [emailError, setEmailError] = useState("");
@@ -50,22 +68,14 @@ const MoneyArtTransaction = () => {
   const [exporting, setExporting] = useState(false);
 
   const token = Cookies.get("authToken");
-
-  // Get today's date in YYYY-MM-DD format
   const today = dayjs().format("YYYY-MM-DD");
-   const [endDate, setEndDate] = useState(today);
-
-  // Minimum allowed date (0000-01-01)
   const minDate = "0000-01-01";
 
   const getData = async (page = 1, pageSize = resultsPerPage) => {
     setLoading(true);
     try {
       const params = {
-        email: email || undefined,
-        mobile_number: mobile || undefined,
-        start_date: startDate || undefined,
-        end_date: endDate || undefined,
+        ...appliedFilters,
         page,
         page_size: pageSize,
       };
@@ -100,7 +110,7 @@ const MoneyArtTransaction = () => {
 
   useEffect(() => {
     if (token) getData();
-  }, [token]);
+  }, [token, appliedFilters, resultsPerPage]);
 
   useEffect(() => {
     if (resetTrigger) {
@@ -109,10 +119,9 @@ const MoneyArtTransaction = () => {
     }
   }, [resetTrigger]);
 
-  const handleChange = (event) => {
-    const value = event.target.value;
-    setResultsPerPage(value);
-    getData(1, value);
+  const handleResultsPerPageChange = (event) => {
+    setResultsPerPage(event.target.value);
+    setPagination((prev) => ({ ...prev, current_page: 1 }));
   };
 
   const handlePageChange = (event, page) => {
@@ -120,13 +129,26 @@ const MoneyArtTransaction = () => {
     getData(page, resultsPerPage);
   };
 
+  const handleOpenFilter = () => setOpenFilter(true);
+  const handleCloseFilter = () => setOpenFilter(false);
+
+  const handleFilterChange = (name, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    // Clear errors when field changes
+    if (name === "email") setEmailError("");
+    if (name === "mobile_number") setMobileError("");
+    if (name === "start_date" || name === "end_date") setDateError("");
+  };
+
   const validateForm = () => {
     let isValid = true;
 
     // Email validation
-    const trimmedEmail = email.trim();
-
-    // Email validation
+    const trimmedEmail = filters.email.trim();
     if (
       trimmedEmail &&
       !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(trimmedEmail)
@@ -138,7 +160,7 @@ const MoneyArtTransaction = () => {
     }
 
     // Mobile validation
-    if (mobile && !/^\d{10}$/.test(mobile)) {
+    if (filters.mobile_number && !/^\d{10}$/.test(filters.mobile_number)) {
       setMobileError("Mobile must be 10 digits");
       isValid = false;
     } else {
@@ -146,29 +168,25 @@ const MoneyArtTransaction = () => {
     }
 
     // Date validation
-    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+    const start = dayjs(filters.start_date);
+    const end = dayjs(filters.end_date);
+    const min = dayjs(minDate);
+    const max = dayjs(today);
+
+    if (filters.start_date && filters.end_date && start.isAfter(end)) {
       setDateError("End date must be after start date");
       isValid = false;
     } else if (
-      startDate &&
-      (new Date(startDate) < new Date(minDate) ||
-        new Date(startDate) > new Date(today))
+      filters.start_date &&
+      (start.isBefore(min) || start.isAfter(max))
     ) {
       setDateError(
-        `Start date must be between ${dayjs(minDate).format(
-          "DD/MM/YYYY"
-        )} and today`
+        `Start date must be between ${min.format("DD/MM/YYYY")} and today`
       );
       isValid = false;
-    } else if (
-      endDate &&
-      (new Date(endDate) < new Date(minDate) ||
-        new Date(endDate) > new Date(today))
-    ) {
+    } else if (filters.end_date && (end.isBefore(min) || end.isAfter(max))) {
       setDateError(
-        `End date must be between ${dayjs(minDate).format(
-          "DD/MM/YYYY"
-        )} and today`
+        `End date must be between ${min.format("DD/MM/YYYY")} and today`
       );
       isValid = false;
     } else {
@@ -178,22 +196,32 @@ const MoneyArtTransaction = () => {
     return isValid;
   };
 
-  const handleFilterSubmit = (e) => {
-    e.preventDefault();
+  const applyFilters = () => {
     if (validateForm()) {
-      getData(1);
+      setAppliedFilters({ ...filters });
+      setPagination((prev) => ({ ...prev, current_page: 1 }));
+      handleCloseFilter();
     }
   };
 
   const resetFilters = () => {
-    setEmail("");
-    setMobile("");
-    setStartDate("");
-    setEndDate(today);
+    setFilters({
+      email: "",
+      mobile_number: "",
+      start_date: "",
+      end_date: today,
+    });
+    setAppliedFilters({
+      email: "",
+      mobile_number: "",
+      start_date: "",
+      end_date: today,
+    });
     setEmailError("");
     setMobileError("");
     setDateError("");
     setResetTrigger(true);
+    handleCloseFilter();
   };
 
   const handleViewDetails = (txn) => {
@@ -211,21 +239,33 @@ const MoneyArtTransaction = () => {
 
   // Get custom no data message
   const getNoDataMessage = () => {
-    if (!email && !mobile && !startDate && !endDate) {
+    if (
+      !appliedFilters.email &&
+      !appliedFilters.mobile_number &&
+      !appliedFilters.start_date &&
+      !appliedFilters.end_date
+    ) {
       return "No transactions found";
     }
 
     let message = "No transactions found";
-    const filters = [];
+    const filterLabels = [];
 
-    if (email) filters.push(`email: ${email}`);
-    if (mobile) filters.push(`mobile: ${mobile}`);
-    if (startDate)
-      filters.push(`from ${dayjs(startDate).format("DD/MM/YYYY")}`);
-    if (endDate) filters.push(`to ${dayjs(endDate).format("DD/MM/YYYY")}`);
+    if (appliedFilters.email)
+      filterLabels.push(`email: ${appliedFilters.email}`);
+    if (appliedFilters.mobile_number)
+      filterLabels.push(`mobile: ${appliedFilters.mobile_number}`);
+    if (appliedFilters.start_date)
+      filterLabels.push(
+        `from ${dayjs(appliedFilters.start_date).format("DD/MM/YYYY")}`
+      );
+    if (appliedFilters.end_date)
+      filterLabels.push(
+        `to ${dayjs(appliedFilters.end_date).format("DD/MM/YYYY")}`
+      );
 
-    if (filters.length > 0) {
-      message += ` with ${filters.join(" and ")}`;
+    if (filterLabels.length > 0) {
+      message += ` with ${filterLabels.join(", ")}`;
     }
 
     return message;
@@ -233,14 +273,11 @@ const MoneyArtTransaction = () => {
 
   const fetchExportData = async () => {
     if (!validateForm()) return;
-    
+
     setExporting(true);
     try {
       const params = {
-        email: email || undefined,
-        mobile_number: mobile || undefined,
-        start_date: startDate || undefined,
-        end_date: endDate || undefined,
+        ...appliedFilters,
       };
 
       Object.keys(params).forEach(
@@ -265,7 +302,7 @@ const MoneyArtTransaction = () => {
         // Create filename with timestamp
         const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
         const fileName = `moneyart_transactions_${timestamp}`;
-        
+
         // Flatten transactions for CSV
         const flattenedTransactions = transactions.map((txn) => ({
           id: txn.id,
@@ -316,20 +353,24 @@ const MoneyArtTransaction = () => {
         const escapeField = (field) => {
           if (field == null) return "";
           const str = String(field);
-          return str.includes(",") || str.includes('"') || str.includes("\n") 
-            ? `"${str.replace(/"/g, '""')}"` 
+          return str.includes(",") || str.includes('"') || str.includes("\n")
+            ? `"${str.replace(/"/g, '""')}"`
             : str;
         };
 
         // Generate CSV content
-        const headerRow = columns.map(col => escapeField(col.title)).join(",");
-        const dataRows = flattenedTransactions.map(txn => 
-          columns.map(col => escapeField(txn[col.id])).join(",")
+        const headerRow = columns
+          .map((col) => escapeField(col.title))
+          .join(",");
+        const dataRows = flattenedTransactions.map((txn) =>
+          columns.map((col) => escapeField(txn[col.id])).join(",")
         );
-        
+
         const csvContent = [headerRow, ...dataRows].join("\n");
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-        
+        const blob = new Blob([csvContent], {
+          type: "text/csv;charset=utf-8;",
+        });
+
         // Trigger download
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
@@ -348,310 +389,204 @@ const MoneyArtTransaction = () => {
     }
   };
 
+  const getStatusBadge = (status) => {
+    const statusMap = {
+      success: "success",
+      failed: "error",
+      pending: "warning",
+    };
+
+    const color = statusMap[status.toLowerCase()] || "default";
+    const label = status.charAt(0).toUpperCase() + status.slice(1);
+
+    return (
+      <Chip label={label} color={color} className="text-white" size="small" />
+    );
+  };
+
   return (
     <>
       {loading === true ? (
         <Loader />
       ) : (
-        <div className="container py-5 mb-lg-4">
-          <div className="row pt-sm-2 pt-lg-0">
-            <SideNav />
+        <div className="container-fluid p-0">
+          <TopNav />
+          <div className="row m-0">
+            <div
+              className="col-3 p-0"
+              style={{ maxHeight: "100%", overflowY: "auto" }}
+            >
+              <SideNav />
+            </div>
+            <div className="col-9">
+              <div className="row m-0">
+                <div
+                  className="col-12 py-3"
+                  style={{ background: "#EEEEEE", minHeight: "93vh" }}
+                >
+                  <div className="frame-1597880849">
+                    <div className="all-members-list">
+                      MoneyArt Bill Transaction List
+                    </div>
 
-            <div className="col-lg-9 pt-4 pb-2 pb-sm-4">
-              <div className="d-sm-flex align-items-center mb-4">
-                <h1 className="h2 mb-4 mb-sm-0 me-4">
-                  Moneyart Bill Transaction List
-                </h1>
-              </div>
-
-              <div className="card shadow border-0">
-                <div className="card-body">
-                  <form onSubmit={handleFilterSubmit} className="">
-                    <div className="row g-3">
-                      <div className="col-md-3">
-                        <TextField
-                          label="Email"
-                          value={email}
-                          onChange={(e) => {
-                            setEmail(e.target.value);
-                            if (emailError) setEmailError("");
-                          }}
-                          error={!!emailError}
-                          helperText={emailError}
-                          fullWidth
-                          size="small"
-                        />
-                      </div>
-                      <div className="col-md-3">
-                        <TextField
-                          label="Mobile Number"
-                          value={mobile}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            // Only allow numbers and limit to 10 digits
-                            if (value === "" || /^\d{0,10}$/.test(value)) {
-                              setMobile(value);
-                              if (mobileError) setMobileError("");
-                            }
-                          }}
-                          error={!!mobileError}
-                          helperText={mobileError}
-                          fullWidth
-                          size="small"
-                          inputProps={{ maxLength: 10 }}
-                        />
-                      </div>
-                      <div className="col-md-3">
-                        <TextField
-                          label="Start Date"
-                          type="date"
-                          InputLabelProps={{ shrink: true }}
-                          value={startDate}
-                          onChange={(e) => {
-                            setStartDate(e.target.value);
-                            if (dateError) setDateError("");
-                          }}
-                          fullWidth
-                          size="small"
-                          inputProps={{
-                            min: minDate,
-                            max: today,
-                          }}
-                        />
-                      </div>
-                      <div className="col-md-3">
-                        <TextField
-                          label="End Date"
-                          type="date"
-                          InputLabelProps={{ shrink: true }}
-                          value={endDate}
-                          onChange={(e) => {
-                            setEndDate(e.target.value);
-                            if (dateError) setDateError("");
-                          }}
-                          error={!!dateError}
-                          helperText={dateError}
-                          fullWidth
-                          size="small"
-                          inputProps={{
-                            min: startDate || minDate,
-                            max: today,
-                          }}
-                          disabled={!startDate}
-                        />
-                      </div>
-                      <div className="col-md-2 d-flex align-items-end">
+                    <div className="frame-1597880735">
+                      <div className="frame-1597880734">
                         <Button
                           variant="contained"
-                          color="primary"
-                          type="submit"
-                          fullWidth
-                        >
-                          Apply
-                        </Button>
-                      </div>
-                      <div className="col-md-2 d-flex align-items-end">
-                        <Button
-                          variant="outlined"
-                          color="light"
-                          onClick={resetFilters}
-                          fullWidth
-                        >
-                          Reset
-                        </Button>
-                      </div>
-                      <div className="col-md-2 d-flex align-items-end">
-                        <Button
-                          variant="contained"
-                          className="w-100"
-                          color="success"
+                          className="excel"
+                          sx={{ padding: "0 16px", height: "48px" }}
                           onClick={fetchExportData}
                           disabled={exporting}
                         >
                           {exporting ? (
                             <CircularProgress size={24} color="inherit" />
                           ) : (
-                            "Export"
+                            <>
+                              <FileDownloadIcon className="me-2" /> Export
+                            </>
                           )}
                         </Button>
                       </div>
-                    </div>
-                  </form>
-                </div>
-              </div>
 
-              <div className="card shadow border-0 mt-3">
-                <div className="card-body">
-                  <div className="overflow-auto">
-                    {transactions.length === 0 ? (
-                      <h6 className="text-center">{getNoDataMessage()}</h6>
-                    ) : (
-                      <>
-                        <table className="table">
+                      <div className="frame-15978807352">
+                        <Button
+                          variant="contained"
+                          startIcon={<FilterListIcon />}
+                          className="filter"
+                          sx={{ padding: "0 16px", height: "48px" }}
+                          disableElevation
+                          onClick={handleOpenFilter}
+                        >
+                          Filter
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="card mw-100 mt-5 rounded-4 border-0">
+                    <div className="card-body">
+                      <div className="overflow-auto ">
+                        <table className="table table-responsive">
                           <thead>
-                            <tr>
+                            <tr
+                              className="rounded-4"
+                              style={{ backgroundColor: "#EEEEEE" }}
+                            >
                               <th>#</th>
-                              <th>Date & Time</th>
-                              <th>Order Id</th>
-                              <th>Bill Ref No</th>
-                              <th>User</th>
-                              <th>Mobile No.</th>
-                              <th>Status</th>
-                              <th>Amount</th>
-                              <th>Message</th>
-                              <th>Action</th>
+                              <th className="main-table">DATE & TIME</th>
+                              <th className="main-table">ORDER ID</th>
+                              <th className="main-table">BILL REF NO</th>
+                              <th className="main-table">USER</th>
+                              <th className="main-table">MOBILE NO.</th>
+                              <th className="main-table">STATUS</th>
+                              <th className="main-table">AMOUNT</th>
+                              <th className="main-table">MESSAGE</th>
+                              <th className="main-table text-center">ACTION</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {transactions.map((txn, idx) => (
-                              <tr key={txn.id}>
-                                <td>
-                                  {(pagination.current_page - 1) *
-                                    resultsPerPage +
-                                    idx +
-                                    1}
-                                </td>
-                                <td>
-                                  {dayjs(txn.created_at).format(
-                                    "DD/MM/YYYY hh:mm A"
-                                  )}
-                                </td>
-                                <td>{txn.order_id}</td>
-                                <td>{txn.bill_ref_no}</td>
-                                <td>{txn.user_details?.full_name}</td>
-                                <td>{txn.user_details?.phone_number}</td>
-                                <td>
-                                  <span
-                                    className={`badge bg-${
-                                      txn.status === "success"
-                                        ? "success"
-                                        : txn.status === "failed"
-                                        ? "danger"
-                                        : "warning"
-                                    }`}
-                                  >
-                                    {txn.status}
-                                  </span>
-                                </td>
-                                <td>$ {txn.amount}</td>
-                                <td>{txn.message}</td>
-                                <td>
-                                  <Tooltip title="View Details">
-                                    <IconButton
-                                      color="info"
-                                      onClick={() => handleViewDetails(txn)}
-                                    >
-                                      <VisibilityRoundedIcon />
-                                    </IconButton>
-                                  </Tooltip>
+                            {loading ? (
+                              <tr>
+                                <td colSpan={10} className="text-center py-5">
+                                  <CircularProgress />
                                 </td>
                               </tr>
-                            ))}
+                            ) : transactions.length === 0 ? (
+                              <tr>
+                                <td colSpan={10} className="text-center py-5">
+                                  {getNoDataMessage()}
+                                </td>
+                              </tr>
+                            ) : (
+                              transactions.map((txn, idx) => (
+                                <tr key={txn.id}>
+                                  <td>
+                                    {(pagination.current_page - 1) *
+                                      resultsPerPage +
+                                      idx +
+                                      1}
+                                  </td>
+                                  <td className="main-table">
+                                    {dayjs(txn.created_at).format(
+                                      "DD/MM/YYYY hh:mm A"
+                                    )}
+                                  </td>
+                                  <td className="main-table">{txn.order_id}</td>
+                                  <td className="main-table">
+                                    {txn.bill_ref_no}
+                                  </td>
+                                  <td className="main-table">
+                                    {txn.user_details?.full_name}
+                                  </td>
+                                  <td className="main-table">
+                                    {txn.user_details?.phone_number}
+                                  </td>
+                                  <td className="main-table">
+                                    {getStatusBadge(txn.status)}
+                                  </td>
+                                  <td className="main-table">$ {txn.amount}</td>
+                                  <td className="main-table">
+                                    <Tooltip title={txn.message}>
+                                      <span
+                                        className="text-truncate"
+                                        style={{
+                                          maxWidth: "150px",
+                                          display: "inline-block",
+                                        }}
+                                      >
+                                        {txn.message}
+                                      </span>
+                                    </Tooltip>
+                                  </td>
+                                  <td>
+                                    <div className="d-flex justify-content-around">
+                                      <Tooltip title="View Details">
+                                        <IconButton
+                                          color="info"
+                                          onClick={() => handleViewDetails(txn)}
+                                        >
+                                          <VisibilityRoundedIcon />
+                                        </IconButton>
+                                      </Tooltip>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
                           </tbody>
                         </table>
-
-                        <div className="container-fluid mb-3">
-                          <div className="row">
-                            <div className="col-3">
-                              <FormControl variant="standard" fullWidth>
-                                <InputLabel id="results-label">
-                                  Results
-                                </InputLabel>
-                                <Select
-                                  labelId="results-label"
-                                  id="results-select"
-                                  value={resultsPerPage}
-                                  onChange={handleChange}
-                                >
-                                  <MenuItem value={10}>10</MenuItem>
-                                  <MenuItem value={25}>25</MenuItem>
-                                  <MenuItem value={50}>50</MenuItem>
-                                  <MenuItem value={100}>100</MenuItem>
-                                </Select>
-                              </FormControl>
-                            </div>
-                            <div className="col-9 d-flex justify-content-end">
-                              <Pagination
-                                count={pagination.total_pages}
-                                page={pagination.current_page}
-                                onChange={handlePageChange}
-                                color="primary"
-                              />
-                            </div>
+                      </div>
+                      <div className="container-fluid mt-4 mb-3">
+                        <div className="row align-items-center">
+                          <div className="col-md-3">
+                            <FormControl variant="standard" fullWidth>
+                              <InputLabel id="results-label">
+                                Results per page
+                              </InputLabel>
+                              <Select
+                                labelId="results-label"
+                                id="results-select"
+                                value={resultsPerPage}
+                                onChange={handleResultsPerPageChange}
+                              >
+                                <MenuItem value={10}>10</MenuItem>
+                                <MenuItem value={25}>25</MenuItem>
+                                <MenuItem value={50}>50</MenuItem>
+                                <MenuItem value={100}>100</MenuItem>
+                              </Select>
+                            </FormControl>
+                          </div>
+                          <div className="col-md-9 d-flex justify-content-end">
+                            <Pagination
+                              count={pagination.total_pages}
+                              page={pagination.current_page}
+                              onChange={handlePageChange}
+                              color="primary"
+                            />
                           </div>
                         </div>
-                      </>
-                    )}
-
-                    <Dialog
-                      open={open}
-                      onClose={() => setOpen(false)}
-                      maxWidth="md"
-                      fullWidth
-                    >
-                      <DialogTitle>Transaction Details</DialogTitle>
-                      <DialogContent
-                        style={{ maxHeight: "80vh", overflow: "auto" }}
-                      >
-                        {selectedTransaction ? (
-                          <Table>
-                            <TableBody>
-                              {/* Special handling for user_details */}
-                              <TableRow>
-                                <TableCell>
-                                  <strong>User Email</strong>
-                                </TableCell>
-                                <TableCell>
-                                  {selectedTransaction.user_details?.email ||
-                                    "N/A"}
-                                </TableCell>
-                              </TableRow>
-                              <TableRow>
-                                <TableCell>
-                                  <strong>User Phone Number</strong>
-                                </TableCell>
-                                <TableCell>
-                                  {selectedTransaction.user_details
-                                    ?.phone_number || "N/A"}
-                                </TableCell>
-                              </TableRow>
-                              <TableRow>
-                                <TableCell>
-                                  <strong>User Full Name</strong>
-                                </TableCell>
-                                <TableCell>
-                                  {selectedTransaction.user_details
-                                    ?.full_name || "N/A"}
-                                </TableCell>
-                              </TableRow>
-
-                              {/* Handle other properties */}
-                              {Object.entries(selectedTransaction)
-                                .filter(([key]) => key !== "user_details")
-                                .map(([key, value]) => (
-                                  <TableRow key={key}>
-                                    <TableCell>
-                                      <strong>{formatKey(key)}</strong>
-                                    </TableCell>
-                                    <TableCell>
-                                      {key.includes("date") ||
-                                      key.includes("_at")
-                                        ? dayjs(value).format(
-                                            "DD/MM/YYYY hh:mm A"
-                                          )
-                                        : value}
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                            </TableBody>
-                          </Table>
-                        ) : (
-                          <DialogContentText>
-                            No transaction details available
-                          </DialogContentText>
-                        )}
-                      </DialogContent>
-                    </Dialog>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -659,6 +594,207 @@ const MoneyArtTransaction = () => {
           </div>
         </div>
       )}
+
+      <Modal
+        open={openFilter}
+        onClose={handleCloseFilter}
+        aria-labelledby="filter-modal-title"
+        aria-describedby="filter-modal-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 700,
+            bgcolor: "#fff",
+            boxShadow: 24,
+            p: 3,
+            borderRadius: "12px",
+          }}
+        >
+          <Typography
+            id="filter-modal-title"
+            className="fw-semibold"
+            variant="h6"
+            component="h2"
+          >
+            Search Records
+          </Typography>
+          <hr />
+
+          <div className="row g-3 mt-3">
+            <div className="col-md-6">
+              <label className="form-label">Email</label>
+              <TextField
+                fullWidth
+                value={filters.email}
+                onChange={(e) => handleFilterChange("email", e.target.value)}
+                error={!!emailError}
+                helperText={emailError}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    backgroundColor: "#f5f5f5",
+                  },
+                }}
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Mobile No.</label>
+              <TextField
+                fullWidth
+                value={filters.mobile_number}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === "" || /^\d{0,10}$/.test(value)) {
+                    handleFilterChange("mobile_number", value);
+                  }
+                }}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    backgroundColor: "#f5f5f5",
+                  },
+                }}
+                error={!!mobileError}
+                helperText={mobileError}
+                inputProps={{ maxLength: 10 }}
+              />
+            </div>
+
+            <div className="col-md-6">
+              <label className="form-label">Start Date</label>
+              <TextField
+                fullWidth
+                type="date"
+                value={filters.start_date}
+                onChange={(e) =>
+                  handleFilterChange("start_date", e.target.value)
+                }
+                InputLabelProps={{ shrink: true }}
+                error={!!dateError}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    backgroundColor: "#f5f5f5",
+                  },
+                }}
+                helperText={dateError ? "" : ``}
+                inputProps={{
+                  min: minDate,
+                  max: today,
+                }}
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">End Date</label>
+              <TextField
+                fullWidth
+                type="date"
+                value={filters.end_date || today}
+                onChange={(e) => handleFilterChange("end_date", e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                error={!!dateError}
+                helperText={dateError || ``}
+                disabled={!filters.start_date}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    backgroundColor: "#f5f5f5",
+                  },
+                }}
+                inputProps={{
+                  min: filters.start_date || minDate,
+                  max: today,
+                }}
+              />
+            </div>
+            <div className="col-6">
+              <Button
+                variant="contained"
+                onClick={applyFilters}
+                className="me-2 w-100"
+                sx={{ height: "45px" }}
+              >
+                Apply
+              </Button>
+            </div>
+            <div className="col-6">
+              <Button
+                variant="outlined"
+                className="w-100"
+                onClick={resetFilters}
+                sx={{ height: "45px" }}
+              >
+                Reset
+              </Button>
+            </div>
+          </div>
+        </Box>
+      </Modal>
+
+      {/* Transaction Details Dialog */}
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Transaction Details</DialogTitle>
+        <DialogContent style={{ maxHeight: "80vh", overflow: "auto" }}>
+          {selectedTransaction ? (
+            <Table>
+              <TableBody>
+                {/* Special handling for user_details */}
+                <TableRow>
+                  <TableCell style={{ width: "30%" }}>
+                    <strong>User Email</strong>
+                  </TableCell>
+                  <TableCell>
+                    {selectedTransaction.user_details?.email || "N/A"}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>
+                    <strong>User Phone Number</strong>
+                  </TableCell>
+                  <TableCell>
+                    {selectedTransaction.user_details?.phone_number || "N/A"}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>
+                    <strong>User Full Name</strong>
+                  </TableCell>
+                  <TableCell>
+                    {selectedTransaction.user_details?.full_name || "N/A"}
+                  </TableCell>
+                </TableRow>
+
+                {/* Handle other properties */}
+                {Object.entries(selectedTransaction)
+                  .filter(([key]) => key !== "user_details")
+                  .map(([key, value]) => (
+                    <TableRow key={key}>
+                      <TableCell style={{ width: "30%" }}>
+                        <strong>{formatKey(key)}</strong>
+                      </TableCell>
+                      <TableCell>
+                        {key.includes("date") || key.includes("_at")
+                          ? dayjs(value).format("DD/MM/YYYY hh:mm A")
+                          : value}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-center py-4">No transaction details available</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

@@ -3,6 +3,8 @@ import SideNav from "../../components/SideNav";
 import axios from "axios";
 import { toast } from "react-toastify";
 import Cookies from "js-cookie";
+import TopNav from "../../components/TopNav";
+import { Button, TextField } from "@mui/material";
 
 const token = Cookies.get("authToken");
 
@@ -115,7 +117,7 @@ const WalletManagement = () => {
   };
 
   const handleAmountChange = (e) => {
-    const raw = e.target.value.replace(/\D/g, ""); 
+    const raw = e.target.value.replace(/\D/g, "");
     if (raw.length <= 8) {
       setAmount(raw);
       if (amountError) setAmountError("");
@@ -132,153 +134,177 @@ const WalletManagement = () => {
   };
 
   return (
-    <div className="container py-5 mb-lg-4">
-      <div className="row pt-sm-2 pt-lg-0">
-        <SideNav />
-        <div className="col-lg-9 pt-4 pb-2 pb-sm-4">
-          <div className="d-sm-flex align-items-center mb-4">
-            <h1 className="h2 mb-4 mb-sm-0 me-4">Wallet Management</h1>
+    <>
+      <div className="container-fluid p-0 m-0">
+        <TopNav />
+        <div className="row m-0">
+          <div
+            className="col-3 p-0"
+            style={{ maxHeight: "100%", overflowY: "auto" }}
+          >
+            <SideNav />
           </div>
+          <div className="col-9">
+            <div className="row m-0">
+              <div
+                className="col-12 py-3"
+                style={{ background: "#EEEEEE", minHeight: "93vh" }}
+              >
+                <div className="frame-1597880849">
+                  <div className="all-members-list">Wallet Management</div>
+                </div>
 
-          <div className="card shadow border-0">
-            <div className="card-body">
-              <form onSubmit={handleFetchBalance}>
-                <div className="row">
-                  <div className="col-6">
-                    <label>Email</label>
-                    <input
-                      type="email"
-                      className={`form-control ${
-                        emailError ? "is-invalid" : ""
-                      }`}
-                      placeholder="Enter user email"
-                      value={email}
-                      onChange={(e) => {
-                        setEmail(e.target.value);
-                        if (emailError) setEmailError("");
-                      }}
-                      required
-                    />
-                    {/* NEW: Email error display */}
-                    {emailError && (
-                      <div className="invalid-feedback d-block">
-                        {emailError}
+                <div className="card shadow border-0 mt-4">
+                  <div className="card-body">
+                    <form onSubmit={handleFetchBalance}>
+                      <div className="row m-0">
+                        <div className="col-6">
+                          <label className="form-label">Email</label>
+                          <TextField
+                            fullWidth
+                            value={email}
+                            onChange={(e) => {
+                              setEmail(e.target.value);
+                              if (emailError) setEmailError("");
+                            }}
+                            error={!!emailError}
+                            helperText={emailError}
+                            required
+                            sx={{
+                              "& .MuiOutlinedInput-root": {
+                                borderRadius: "12px",
+                                backgroundColor: "#f5f5f5",
+                              },
+                            }}
+                          />
+                        </div>
+
+                        <div className="col-6 my-4">
+                          <Button
+                            variant="contained"
+                            type="submit"
+                            className="rounded-1"
+                            disabled={loading || balance}
+                            sx={{
+                              height: "55px",
+                            }}
+                          >
+                            {loading ? (
+                              <>
+                                <span
+                                  className="spinner-border spinner-border-sm me-2"
+                                  role="status"
+                                  aria-hidden="true"
+                                ></span>
+                                Loading...
+                              </>
+                            ) : (
+                              "Check Balance"
+                            )}
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            color="dark"
+                            onClick={(e) => handleClear(e)}
+                            className="btn btn-outline-dark ms-2"
+                            sx={{
+                              height: "55px",
+                            }}
+                          >
+                            Reset
+                          </Button>
+                        </div>
                       </div>
+                    </form>
+
+                    {balance !== null && (
+                      <>
+                        <div className="alert alert-info mb-3">
+                          <strong>User USD Balance:</strong> $
+                          {Number(balance)?.toFixed(2)}
+                        </div>
+                        <div className="row m-0">
+                          <div className="col-md-6">
+                            <label className="form-label">Amount</label>
+                            <TextField
+                              fullWidth
+                              value={amount}
+                              onChange={handleAmountChange}
+                              onKeyPress={(e) => {
+                                if (!/[0-9]/.test(e.key)) {
+                                  e.preventDefault();
+                                }
+                              }}
+                              error={!!amountError}
+                              helperText={amountError}
+                              inputProps={{
+                                maxLength: 8,
+                                inputMode: "numeric",
+                              }}
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  borderRadius: "12px",
+                                  backgroundColor: "#f5f5f5",
+                                },
+                              }}
+                            />
+                          </div>
+
+                          <div className="col-md-6 d-flex gap-2 my-4 ">
+                            <Button
+                              variant="contained"
+                              type="button"
+                              color="success"
+                              onClick={() => handleWalletAction("add")}
+                              disabled={actionLoading === "add" || !amount}
+                              sx={{ height: "55px" }}
+                            >
+                              {actionLoading === "add" ? (
+                                <>
+                                  <span
+                                    className="spinner-border spinner-border-sm me-2"
+                                    role="status"
+                                    aria-hidden="true"
+                                  ></span>
+                                  Processing...
+                                </>
+                              ) : (
+                                "Add Funds"
+                              )}
+                            </Button>
+                            <Button
+                              variant="contained"
+                              type="button"
+                              color="error"
+                              sx={{ height: "55px" }}
+                              onClick={() => handleWalletAction("remove")}
+                              disabled={actionLoading === "remove" || !amount}
+                            >
+                              {actionLoading === "remove" ? (
+                                <>
+                                  <span
+                                    className="spinner-border spinner-border-sm me-2"
+                                    role="status"
+                                    aria-hidden="true"
+                                  ></span>
+                                  Processing...
+                                </>
+                              ) : (
+                                "Reduce Funds"
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </>
                     )}
                   </div>
-                  <div className="col-6 my-4">
-                    <button
-                      type="submit"
-                      className="btn btn-primary"
-                      disabled={loading || balance}
-                    >
-                      {loading ? (
-                        <>
-                          <span
-                            className="spinner-border spinner-border-sm me-2"
-                            role="status"
-                            aria-hidden="true"
-                          ></span>
-                          Loading...
-                        </>
-                      ) : (
-                        "Check Balance"
-                      )}
-                    </button>
-                    <button
-                      onClick={(e) => handleClear(e)}
-                      className="btn btn-outline-dark ms-2"
-                    >
-                      Reset
-                    </button>
-                  </div>
                 </div>
-              </form>
-
-              {balance !== null && (
-                <>
-                  <div className="alert alert-info mb-3">
-                    <strong>User USD Balance:</strong> $
-                    {Number(balance)?.toFixed(2)}
-                  </div>
-                  <div className="row">
-                    <div className="col-md-6">
-                      <label>Amount</label>
-                      <div className="input-group p-0">
-                        <span className="input-group-text">$</span>
-                        <input
-                          type="text"
-                          className={`form-control ${
-                            amountError ? "is-invalid" : ""
-                          }`}
-                          placeholder="Enter amount (max 8 digits)"
-                          value={amount}
-                          onChange={handleAmountChange}
-                          onKeyPress={(e) => {
-                            // Allow only digits
-                            if (!/[0-9]/.test(e.key)) {
-                              e.preventDefault();
-                            }
-                          }}
-                          inputMode="numeric"
-                          maxLength={8}
-                        />
-                      </div>
-                      {/* NEW: Amount error display */}
-                      {amountError && (
-                        <div className="invalid-feedback d-block">
-                          {amountError}
-                        </div>
-                      )}
-                    </div>
-                    <div className="col-md-6 d-flex gap-2 my-4 ">
-                      <button
-                        className="btn btn-success"
-                        type="button"
-                        onClick={() => handleWalletAction("add")}
-                        disabled={actionLoading === "add" || !amount}
-                      >
-                        {actionLoading === "add" ? (
-                          <>
-                            <span
-                              className="spinner-border spinner-border-sm me-2"
-                              role="status"
-                              aria-hidden="true"
-                            ></span>
-                            Processing...
-                          </>
-                        ) : (
-                          "Add Funds"
-                        )}
-                      </button>
-                      <button
-                        className="btn btn-danger"
-                        type="button"
-                        onClick={() => handleWalletAction("remove")}
-                        disabled={actionLoading === "remove" || !amount}
-                      >
-                        {actionLoading === "remove" ? (
-                          <>
-                            <span
-                              className="spinner-border spinner-border-sm me-2"
-                              role="status"
-                              aria-hidden="true"
-                            ></span>
-                            Processing...
-                          </>
-                        ) : (
-                          "Reduce Funds"
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
