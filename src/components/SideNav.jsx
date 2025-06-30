@@ -29,6 +29,7 @@ import {
   NoteRounded,
   NotificationsActiveRounded,
   CheckCircleOutlineRounded,
+  FlightTakeoffRounded
 } from "@mui/icons-material";
 
 const Nav = () => {
@@ -124,6 +125,11 @@ const Nav = () => {
       path: "/kyc",
       label: "Kyc List",
       icon: <CheckCircleOutlineRounded />,
+    },
+    {
+      path: "/flight/booking",
+      label: "Flight Booking List",
+      icon: <FlightTakeoffRounded />,
     },
     {
       path: "/profile",
