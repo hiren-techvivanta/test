@@ -112,7 +112,7 @@ const SendNotification = () => {
                         <div className="row m-0">
                           {/* Title */}
                           <div className="col-12 mb-4">
-                            <label className="form-label">Email</label>
+                            <label className="form-label">Title</label>
                             <TextField
                               fullWidth
                               name="title"

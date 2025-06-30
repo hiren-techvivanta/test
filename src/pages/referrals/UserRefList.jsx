@@ -20,13 +20,14 @@ import axios from "axios";
 import TopNav from "../../components/TopNav";
 
 const UserRefList = () => {
-  // State management
+
+   const today = dayjs().format("YYYY-MM-DD");
   const [resultsPerPage, setResultsPerPage] = useState(10);
   const [referralList, setReferralList] = useState([]);
   const [summaryStats, setSummaryStats] = useState({});
   const [email, setEmail] = useState("");
   const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [endDate, setEndDate] = useState(today);
   const [pagination, setPagination] = useState({
     current_page: 1,
     total_pages: 1,
@@ -35,10 +36,9 @@ const UserRefList = () => {
   const [emailError, setEmailError] = useState("");
   const [dateError, setDateError] = useState("");
   const [resetTrigger, setResetTrigger] = useState(false);
-  const [openFilter, setOpenFilter] = useState(false); // Moved state here
+  const [openFilter, setOpenFilter] = useState(false); 
 
   const token = Cookies.get("authToken");
-  const today = dayjs().format("YYYY-MM-DD");
   const minDate = "0000-01-01";
 
   // Fetch referral data
@@ -157,7 +157,7 @@ const UserRefList = () => {
   const resetFilters = () => {
     setEmail("");
     setStartDate("");
-    setEndDate("");
+    setEndDate(today);
     setEmailError("");
     setDateError("");
     setResetTrigger(true);
@@ -630,6 +630,7 @@ const UserRefList = () => {
                     <TextField
                       fullWidth
                       value={email}
+                      type="email"
                       onChange={(e) => setEmail(e.target.value)}
                       error={!!emailError}
                       helperText={emailError}
@@ -683,6 +684,7 @@ const UserRefList = () => {
                         min: startDate || minDate,
                         max: today,
                       }}
+                      disabled={!startDate}
                     />
                   </div>
                   <div className="col-6">

@@ -42,6 +42,7 @@ import RemoveCircleOutlineRoundedIcon from "@mui/icons-material/RemoveCircleOutl
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 
 const UserList = () => {
+  const today = dayjs().format("YYYY-MM-DD");
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [resultsPerPage, setResultsPerPage] = useState(10);
@@ -52,14 +53,14 @@ const UserList = () => {
     mobile_number: "",
     kyc_status: "",
     start_date: "",
-    end_date: "",
+    end_date: today,
   });
   const [appliedFilters, setAppliedFilters] = useState({
     email: "",
     mobile_number: "",
     kyc_status: "",
     start_date: "",
-    end_date: "",
+    end_date: today,
   });
   const [open, setOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -79,7 +80,6 @@ const UserList = () => {
   const token = Cookies.get("authToken");
 
   // Define date constraints
-  const today = dayjs().format("YYYY-MM-DD");
   const minDate = "0000-01-01";
 
   const fetchUsers = async () => {
@@ -200,6 +200,7 @@ const UserList = () => {
     if (validateForm()) {
       setAppliedFilters({ ...filters });
       setCurrentPage(1);
+      setOpenFilter(false);
     }
   };
 
@@ -209,14 +210,14 @@ const UserList = () => {
       mobile_number: "",
       kyc_status: "",
       start_date: "",
-      end_date: "",
+      end_date: today,
     });
     setAppliedFilters({
       email: "",
       mobile_number: "",
       kyc_status: "",
       start_date: "",
-      end_date: "",
+      end_date: today,
     });
     setEmailError("");
     setMobileError("");
@@ -421,7 +422,10 @@ const UserList = () => {
       <div className="container-fluid p-0">
         <TopNav />
         <div className="row m-0">
-          <div className="col-3 p-0" style={{maxHeight: "100%", overflowY: "auto"}}>
+          <div
+            className="col-3 p-0"
+            style={{ maxHeight: "100%", overflowY: "auto" }}
+          >
             <SideNav />
           </div>
           <div className="col-9">
@@ -445,7 +449,9 @@ const UserList = () => {
                         {exporting ? (
                           <CircularProgress size={24} color="inherit" />
                         ) : (
-                         <><FileDownloadIcon className="me-2"/> Export</> 
+                          <>
+                            <FileDownloadIcon className="me-2" /> Export
+                          </>
                         )}
                       </Button>
                     </div>
@@ -502,7 +508,9 @@ const UserList = () => {
                                 <td>{user.sr_no}</td>
                                 <td className="main-table">{user.full_name}</td>
                                 <td className="main-table">{user.email}</td>
-                                <td className="main-table">{user.phone_number}</td>
+                                <td className="main-table">
+                                  {user.phone_number}
+                                </td>
                                 <td className="main-table">
                                   <span
                                     className={`badge bg-${
@@ -618,6 +626,7 @@ const UserList = () => {
               <label className="form-label">Email</label>
               <TextField
                 fullWidth
+                type="email"
                 value={filters.email}
                 onChange={(e) => handleFilterChange("email", e.target.value)}
                 error={!!emailError}
@@ -728,7 +737,6 @@ const UserList = () => {
               <Button
                 variant="contained"
                 onClick={() => {
-                  setOpenFilter(false);
                   applyFilters();
                 }}
                 className="me-2 w-100"

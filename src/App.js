@@ -27,6 +27,7 @@ import CryptoTransaction from "./pages/transacrions/cryptotransactions/CryptoTra
 import BankAccountList from "./pages/bank/BankAccountList.jsx";
 import WalletTopup from "./pages/wallet/WalletTopup.jsx";
 import UserRefList from "./pages/referrals/UserRefList.jsx";
+import FlightBooking from "./pages/flightBooking/FlightBooking.jsx";
 
 function App() {
   return (
@@ -59,6 +60,7 @@ function App() {
           <Route path="/bank-accounts" element={<BankAccountList />} />
           <Route path="/wallet-topup/transaction" element={<WalletTopup />} />
           <Route path="/user/referrals" element={<UserRefList />} />
+          <Route path="/flight/booking" element={<FlightBooking />} />
 
           <Route path="*" element={<Error404 />} />
         </Routes>
