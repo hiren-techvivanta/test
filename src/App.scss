@@ -17320,7 +17320,7 @@ img-comparison-slider:focus {
   padding: 8px;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: var(--ar-primary);
+  background: $primary;
   --_m: conic-gradient(#0000 10%, #000), linear-gradient(#000 0 0) content-box;
   -webkit-mask: var(--_m);
   mask: var(--_m);
@@ -17733,7 +17733,7 @@ thead > tr > .main-table {
 }
 
 .main-table {
-  min-width: 10rem;
+  min-width: 15rem;
   width: auto;
   font-weight: 500;
 }

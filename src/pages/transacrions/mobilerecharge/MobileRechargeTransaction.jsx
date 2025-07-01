@@ -33,6 +33,7 @@ import dayjs from "dayjs";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import Loader from "../../../components/Loader";
 
 const MobileRechargeTransaction = () => {
   const [resultsPerPage, setResultsPerPage] = useState(10);
@@ -269,7 +270,7 @@ const MobileRechargeTransaction = () => {
       filterLabels.push(
         `from ${dayjs(appliedFilters.start_date).format("DD/MM/YYYY")}`
       );
-    if (appliedFilters.end_date)
+    if (appliedFilters.start_date && appliedFilters.end_date)
       filterLabels.push(
         `to ${dayjs(appliedFilters.end_date).format("DD/MM/YYYY")}`
       );
@@ -389,175 +390,212 @@ const MobileRechargeTransaction = () => {
 
   return (
     <>
-      <div className="container-fluid p-0">
-        <TopNav />
-        <div className="row m-0">
-          <div
-            className="col-3 p-0"
-            style={{ maxHeight: "100%", overflowY: "auto" }}
-          >
-            <SideNav />
-          </div>
-          <div className="col-9">
+      {loading === true ? (
+        <>
+          <Loader />
+        </>
+      ) : (
+        <>
+          <div className="container-fluid p-0">
+            <TopNav />
             <div className="row m-0">
               <div
-                className="col-12 py-3"
-                style={{ background: "#EEEEEE", minHeight: "93vh" }}
+                className="col-3 p-0"
+                style={{ maxHeight: "100%", overflowY: "auto" }}
               >
-                <div className="frame-1597880849">
-                  <div className="all-members-list">
-                    Mobile Recharge Transactions
-                  </div>
+                <SideNav />
+              </div>
+              <div className="col-9">
+                <div className="row m-0">
+                  <div
+                    className="col-12 py-3"
+                    style={{ background: "#EEEEEE", minHeight: "93vh" }}
+                  >
+                    <div className="frame-1597880849">
+                      <div className="all-members-list">
+                        Mobile Recharge Transactions
+                      </div>
 
-                  <div className="frame-1597880735">
-                    <div className="frame-1597880734">
-                      <Button
-                        variant="contained"
-                        className="excel"
-                        sx={{ padding: "0 16px", height: "48px" }}
-                        onClick={handleExport}
-                        disabled={exporting}
-                      >
-                        {exporting ? (
-                          <CircularProgress size={24} color="inherit" />
+                      <div className="frame-1597880735">
+                        <div className="frame-1597880734">
+                          <Button
+                            variant="contained"
+                            className="excel"
+                            sx={{ padding: "0 16px", height: "48px" }}
+                            onClick={handleExport}
+                            disabled={exporting}
+                          >
+                            {exporting ? (
+                              <CircularProgress size={24} color="inherit" />
+                            ) : (
+                              <>
+                                <FileDownloadIcon className="me-2" /> Export
+                              </>
+                            )}
+                          </Button>
+                        </div>
+
+                        <div className="frame-15978807352">
+                          <Button
+                            variant="contained"
+                            startIcon={<FilterListIcon />}
+                            className="filter"
+                            sx={{ padding: "0 16px", height: "48px" }}
+                            disableElevation
+                            onClick={handleOpenFilter}
+                          >
+                            Filter
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="card mw-100 mt-5 rounded-4 border-0">
+                      <div className="card-body">
+                        {transactions?.length === 0 ? (
+                          <>
+                            <h5 className="text-center">
+                              {getNoDataMessage()}
+                            </h5>
+                          </>
                         ) : (
                           <>
-                            <FileDownloadIcon className="me-2" /> Export
+                            <div className="overflow-auto">
+                              <table className="table table-responsive">
+                                <thead>
+                                  <tr
+                                    className="rounded-4"
+                                    style={{ backgroundColor: "#EEEEEE" }}
+                                  >
+                                    <th>#</th>
+                                    <th className="main-table">DATE & TIME</th>
+                                    <th className="main-table">
+                                      OPERATOR CODE
+                                    </th>
+                                    <th className="main-table">USER NAME</th>
+                                    <th className="main-table">EMAIL</th>
+                                    <th className="main-table">MOBILE NO.</th>
+                                    <th className="main-table">STATUS</th>
+                                    <th className="main-table">AMOUNT</th>
+                                    <th className="main-table text-center">
+                                      ACTION
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {loading ? (
+                                    <tr>
+                                      <td
+                                        colSpan={9}
+                                        className="text-center py-5"
+                                      >
+                                        <CircularProgress />
+                                      </td>
+                                    </tr>
+                                  ) : transactions.length === 0 ? (
+                                    <tr>
+                                      <td
+                                        colSpan={9}
+                                        className="text-center py-5"
+                                      >
+                                        {getNoDataMessage()}
+                                      </td>
+                                    </tr>
+                                  ) : (
+                                    transactions.map((txn, index) => (
+                                      <tr key={txn.id}>
+                                        <td>
+                                          {(currentPage - 1) * resultsPerPage +
+                                            index +
+                                            1}
+                                        </td>
+                                        <td className="main-table">
+                                          {dayjs(txn.created_at).format(
+                                            "DD/MM/YYYY hh:mm A"
+                                          )}
+                                        </td>
+                                        <td className="main-table">
+                                          {txn.operator_code}
+                                        </td>
+                                        <td className="main-table">
+                                          {txn.user_details?.full_name || "N/A"}
+                                        </td>
+                                        <td className="main-table">
+                                          {txn.user_details?.email || "N/A"}
+                                        </td>
+                                        <td className="main-table">
+                                          {txn.user_details?.phone_number ||
+                                            "N/A"}
+                                        </td>
+                                        <td className="main-table">
+                                          <span
+                                            className={`badge bg-${
+                                              txn.status === "1"
+                                                ? "success"
+                                                : "danger"
+                                            } py-2`}
+                                          >
+                                            {txn.status === "1"
+                                              ? "Success"
+                                              : "Failed"}
+                                          </span>
+                                        </td>
+                                        <td className="main-table">
+                                          $ {txn.amount}
+                                        </td>
+                                        <td className="main-table">
+                                          <div className="d-flex justify-content-around">
+                                            <Tooltip title="View Details">
+                                              <IconButton
+                                                color="info"
+                                                onClick={() =>
+                                                  handleOpenModal(txn)
+                                                }
+                                              >
+                                                <VisibilityRoundedIcon />
+                                              </IconButton>
+                                            </Tooltip>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    ))
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+
+                            <div className="container-fluid mt-4 mb-3">
+                              <div className="row align-items-center">
+                                <div className="col-md-3">
+                                  <FormControl variant="standard" fullWidth>
+                                    <InputLabel id="results-label">
+                                      Results per page
+                                    </InputLabel>
+                                    <Select
+                                      labelId="results-label"
+                                      id="results-select"
+                                      value={resultsPerPage}
+                                      onChange={handleResultsPerPageChange}
+                                    >
+                                      <MenuItem value={10}>10</MenuItem>
+                                      <MenuItem value={25}>25</MenuItem>
+                                      <MenuItem value={50}>50</MenuItem>
+                                      <MenuItem value={100}>100</MenuItem>
+                                    </Select>
+                                  </FormControl>
+                                </div>
+                                <div className="col-md-9 d-flex justify-content-end">
+                                  <Pagination
+                                    count={totalPages}
+                                    page={currentPage}
+                                    onChange={handlePageChange}
+                                    color="primary"
+                                  />
+                                </div>
+                              </div>
+                            </div>
                           </>
                         )}
-                      </Button>
-                    </div>
-
-                    <div className="frame-15978807352">
-                      <Button
-                        variant="contained"
-                        startIcon={<FilterListIcon />}
-                        className="filter"
-                        sx={{ padding: "0 16px", height: "48px" }}
-                        disableElevation
-                        onClick={handleOpenFilter}
-                      >
-                        Filter
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="card mw-100 mt-5 rounded-4 border-0">
-                  <div className="card-body">
-                    <div className="overflow-auto">
-                      <table className="table table-responsive">
-                        <thead>
-                          <tr
-                            className="rounded-4"
-                            style={{ backgroundColor: "#EEEEEE" }}
-                          >
-                            <th>#</th>
-                            <th className="main-table">DATE & TIME</th>
-                            <th className="main-table">OPERATOR CODE</th>
-                            <th className="main-table">USER NAME</th>
-                            <th className="main-table">EMAIL</th>
-                            <th className="main-table">MOBILE NO.</th>
-                            <th className="main-table">STATUS</th>
-                            <th className="main-table">AMOUNT</th>
-                            <th className="main-table text-center">ACTION</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {loading ? (
-                            <tr>
-                              <td colSpan={9} className="text-center py-5">
-                                <CircularProgress />
-                              </td>
-                            </tr>
-                          ) : transactions.length === 0 ? (
-                            <tr>
-                              <td colSpan={9} className="text-center py-5">
-                                {getNoDataMessage()}
-                              </td>
-                            </tr>
-                          ) : (
-                            transactions.map((txn, index) => (
-                              <tr key={txn.id}>
-                                <td>
-                                  {(currentPage - 1) * resultsPerPage +
-                                    index +
-                                    1}
-                                </td>
-                                <td className="main-table">
-                                  {dayjs(txn.created_at).format(
-                                    "DD/MM/YYYY hh:mm A"
-                                  )}
-                                </td>
-                                <td className="main-table">
-                                  {txn.operator_code}
-                                </td>
-                                <td className="main-table">
-                                  {txn.user_details?.full_name || "N/A"}
-                                </td>
-                                <td className="main-table">
-                                  {txn.user_details?.email || "N/A"}
-                                </td>
-                                <td className="main-table">
-                                  {txn.user_details?.phone_number || "N/A"}
-                                </td>
-                                <td className="main-table">
-                                  <span
-                                    className={`badge bg-${
-                                      txn.status === "1" ? "success" : "danger"
-                                    } py-2`}
-                                  >
-                                    {txn.status === "1" ? "Success" : "Failed"}
-                                  </span>
-                                </td>
-                                <td className="main-table">$ {txn.amount}</td>
-                                <td className="main-table">
-                                  <div className="d-flex justify-content-around">
-                                    <Tooltip title="View Details">
-                                      <IconButton
-                                        color="info"
-                                        onClick={() => handleOpenModal(txn)}
-                                      >
-                                        <VisibilityRoundedIcon />
-                                      </IconButton>
-                                    </Tooltip>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <div className="container-fluid mt-4 mb-3">
-                      <div className="row align-items-center">
-                        <div className="col-md-3">
-                          <FormControl variant="standard" fullWidth>
-                            <InputLabel id="results-label">
-                              Results per page
-                            </InputLabel>
-                            <Select
-                              labelId="results-label"
-                              id="results-select"
-                              value={resultsPerPage}
-                              onChange={handleResultsPerPageChange}
-                            >
-                              <MenuItem value={10}>10</MenuItem>
-                              <MenuItem value={25}>25</MenuItem>
-                              <MenuItem value={50}>50</MenuItem>
-                              <MenuItem value={100}>100</MenuItem>
-                            </Select>
-                          </FormControl>
-                        </div>
-                        <div className="col-md-9 d-flex justify-content-end">
-                          <Pagination
-                            count={totalPages}
-                            page={currentPage}
-                            onChange={handlePageChange}
-                            color="primary"
-                          />
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -565,281 +603,304 @@ const MobileRechargeTransaction = () => {
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Filter Modal */}
-      <Modal
-        open={openFilter}
-        onClose={handleCloseFilter}
-        aria-labelledby="filter-modal-title"
-        aria-describedby="filter-modal-description"
-      >
-        <Box
-          sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: 700,
-            bgcolor: "#fff",
-            boxShadow: 24,
-            p: 3,
-            borderRadius: "12px",
-          }}
-        >
-          <Typography
-            id="filter-modal-title"
-            className="fw-semibold"
-            variant="h6"
-            component="h2"
+          {/* Filter Modal */}
+          <Modal
+            open={openFilter}
+            onClose={handleCloseFilter}
+            aria-labelledby="filter-modal-title"
+            aria-describedby="filter-modal-description"
           >
-            Search Records
-          </Typography>
-          <hr />
-
-          <div className="row g-3 mt-3">
-            <div className="col-md-6">
-              <label className="form-label">Email</label>
-              <TextField
-                fullWidth
-                value={filters.email}
-                onChange={(e) => handleFilterChange("email", e.target.value)}
-                error={!!emailError}
-                helperText={emailError}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: "12px",
-                    backgroundColor: "#f5f5f5",
-                  },
-                }}
-              />
-            </div>
-            <div className="col-md-6">
-              <label className="form-label">Mobile No.</label>
-              <TextField
-                fullWidth
-                value={filters.mobile_number}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value === "" || /^\d{0,15}$/.test(value)) {
-                    handleFilterChange("mobile_number", value);
-                  }
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: "12px",
-                    backgroundColor: "#f5f5f5",
-                  },
-                }}
-                error={!!mobileError}
-                helperText={mobileError}
-                inputProps={{ maxLength: 15 }}
-              />
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label">Start Date</label>
-              <TextField
-                fullWidth
-                type="date"
-                value={filters.start_date}
-                onChange={(e) =>
-                  handleFilterChange("start_date", e.target.value)
-                }
-                InputLabelProps={{ shrink: true }}
-                error={!!dateError}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: "12px",
-                    backgroundColor: "#f5f5f5",
-                  },
-                }}
-                helperText={dateError ? "" : ``}
-                inputProps={{
-                  min: MIN_DATE,
-                  max: today,
-                }}
-              />
-            </div>
-            <div className="col-md-6">
-              <label className="form-label">End Date</label>
-              <TextField
-                fullWidth
-                type="date"
-                value={filters.end_date || today}
-                onChange={(e) => handleFilterChange("end_date", e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                error={!!dateError}
-                helperText={dateError || ``}
-                disabled={!filters.start_date}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: "12px",
-                    backgroundColor: "#f5f5f5",
-                  },
-                }}
-                inputProps={{
-                  min: filters.start_date || MIN_DATE,
-                  max: today,
-                }}
-              />
-            </div>
-            <div className="col-md-6">
-              <label className="form-label">Status</label>
-              <FormControl fullWidth>
-                <Select
-                  value={filters.status}
-                  onChange={(e) => handleFilterChange("status", e.target.value)}
-                  sx={{
-                    "& .MuiSelect-select": {
-                      borderRadius: "12px",
-                      backgroundColor: "#f5f5f5",
-                    },
-                  }}
-                >
-                  <MenuItem value="">All</MenuItem>
-                  <MenuItem value="1">Success</MenuItem>
-                  <MenuItem value="0">Failed</MenuItem>
-                </Select>
-              </FormControl>
-            </div>
-            <div className="col-md-6"></div>
-            <div className="col-6">
-              <Button
-                variant="contained"
-                onClick={applyFilters}
-                className="me-2 w-100"
-                sx={{ height: "45px" }}
+            <Box
+              sx={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                width: 700,
+                bgcolor: "#fff",
+                boxShadow: 24,
+                p: 3,
+                borderRadius: "12px",
+              }}
+            >
+              <Typography
+                id="filter-modal-title"
+                className="fw-semibold"
+                variant="h6"
+                component="h2"
               >
-                Apply
-              </Button>
-            </div>
-            <div className="col-6">
-              <Button
-                variant="outlined"
-                className="w-100"
-                onClick={resetFilters}
-                sx={{ height: "45px" }}
-              >
-                Reset
-              </Button>
-            </div>
-          </div>
-        </Box>
-      </Modal>
+                Search Records
+              </Typography>
+              <hr />
 
-      {/* Transaction Details Dialog */}
-      <Dialog open={open} onClose={handleCloseModal} maxWidth="md" fullWidth>
-        <DialogTitle>Transaction Details</DialogTitle>
-        <DialogContent style={{ maxHeight: "80vh", overflow: "auto" }}>
-          {selectedTransaction ? (
-            <Table>
-              <TableBody>
-                {/* User Details */}
-                {selectedTransaction.user_details && (
-                  <>
-                    <TableRow>
-                      <TableCell style={{ width: "30%" }}>
-                        <strong>User Name</strong>
-                      </TableCell>
-                      <TableCell>
-                        {selectedTransaction.user_details.full_name || "N/A"}
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>
-                        <strong>Email</strong>
-                      </TableCell>
-                      <TableCell>
-                        {selectedTransaction.user_details.email || "N/A"}
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>
-                        <strong>Mobile</strong>
-                      </TableCell>
-                      <TableCell>
-                        {selectedTransaction.user_details.phone_number || "N/A"}
-                      </TableCell>
-                    </TableRow>
-                  </>
-                )}
+              <div className="row g-3 mt-3">
+                <div className="col-md-6">
+                  <label className="form-label">Email</label>
+                  <TextField
+                    fullWidth
+                    value={filters.email}
+                    onChange={(e) =>
+                      handleFilterChange("email", e.target.value)
+                    }
+                    error={!!emailError}
+                    helperText={emailError}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: "12px",
+                        backgroundColor: "#f5f5f5",
+                      },
+                    }}
+                  />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">Mobile No.</label>
+                  <TextField
+                    fullWidth
+                    value={filters.mobile_number}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === "" || /^\d{0,15}$/.test(value)) {
+                        handleFilterChange("mobile_number", value);
+                      }
+                    }}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: "12px",
+                        backgroundColor: "#f5f5f5",
+                      },
+                    }}
+                    error={!!mobileError}
+                    helperText={mobileError}
+                    inputProps={{ maxLength: 15 }}
+                  />
+                </div>
 
-                {/* Transaction Details */}
-                <TableRow>
-                  <TableCell>
-                    <strong>Order ID</strong>
-                  </TableCell>
-                  <TableCell>{selectedTransaction.order_id || "N/A"}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>Client Order ID</strong>
-                  </TableCell>
-                  <TableCell>
-                    {selectedTransaction.client_order_id || "N/A"}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>Mobile Number</strong>
-                  </TableCell>
-                  <TableCell>{selectedTransaction.number || "N/A"}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>Operator Code</strong>
-                  </TableCell>
-                  <TableCell>
-                    {selectedTransaction.operator_code || "N/A"}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>Amount</strong>
-                  </TableCell>
-                  <TableCell>${selectedTransaction.amount || "N/A"}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>Recharge Type</strong>
-                  </TableCell>
-                  <TableCell>
-                    {selectedTransaction.recharge_type || "N/A"}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>Status</strong>
-                  </TableCell>
-                  <TableCell>
-                    {selectedTransaction.status === "1" ? "Success" : "Failed"}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>UTR</strong>
-                  </TableCell>
-                  <TableCell>{selectedTransaction.utr || "N/A"}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>Date & Time</strong>
-                  </TableCell>
-                  <TableCell>
-                    {dayjs(selectedTransaction.created_at).format(
-                      "DD/MM/YYYY hh:mm A"
+                <div className="col-md-6">
+                  <label className="form-label">Start Date</label>
+                  <TextField
+                    fullWidth
+                    type="date"
+                    value={filters.start_date}
+                    onChange={(e) =>
+                      handleFilterChange("start_date", e.target.value)
+                    }
+                    InputLabelProps={{ shrink: true }}
+                    error={!!dateError}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: "12px",
+                        backgroundColor: "#f5f5f5",
+                      },
+                    }}
+                    helperText={dateError ? "" : ``}
+                    inputProps={{
+                      min: MIN_DATE,
+                      max: today,
+                    }}
+                  />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">End Date</label>
+                  <TextField
+                    fullWidth
+                    type="date"
+                    value={filters.end_date || today}
+                    onChange={(e) =>
+                      handleFilterChange("end_date", e.target.value)
+                    }
+                    InputLabelProps={{ shrink: true }}
+                    error={!!dateError}
+                    helperText={dateError || ``}
+                    disabled={!filters.start_date}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: "12px",
+                        backgroundColor: "#f5f5f5",
+                      },
+                    }}
+                    inputProps={{
+                      min: filters.start_date || MIN_DATE,
+                      max: today,
+                    }}
+                  />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">Status</label>
+                  <FormControl fullWidth>
+                    <Select
+                      value={filters.status}
+                      onChange={(e) =>
+                        handleFilterChange("status", e.target.value)
+                      }
+                      sx={{
+                        "& .MuiSelect-select": {
+                          borderRadius: "12px",
+                          backgroundColor: "#f5f5f5",
+                        },
+                      }}
+                    >
+                      <MenuItem value="">All</MenuItem>
+                      <MenuItem value="1">Success</MenuItem>
+                      <MenuItem value="0">Failed</MenuItem>
+                    </Select>
+                  </FormControl>
+                </div>
+                <div className="col-md-6"></div>
+                <div className="col-6">
+                  <Button
+                    variant="contained"
+                    onClick={applyFilters}
+                    className="me-2 w-100"
+                    sx={{ height: "45px" }}
+                  >
+                    Apply
+                  </Button>
+                </div>
+                <div className="col-6">
+                  <Button
+                    variant="outlined"
+                    className="w-100"
+                    onClick={resetFilters}
+                    sx={{ height: "45px" }}
+                  >
+                    Reset
+                  </Button>
+                </div>
+              </div>
+            </Box>
+          </Modal>
+
+          {/* Transaction Details Dialog */}
+          <Dialog
+            open={open}
+            onClose={handleCloseModal}
+            maxWidth="md"
+            fullWidth
+          >
+            <DialogTitle>Transaction Details</DialogTitle>
+            <DialogContent style={{ maxHeight: "80vh", overflow: "auto" }}>
+              {selectedTransaction ? (
+                <Table>
+                  <TableBody>
+                    {/* User Details */}
+                    {selectedTransaction.user_details && (
+                      <>
+                        <TableRow>
+                          <TableCell style={{ width: "30%" }}>
+                            <strong>User Name</strong>
+                          </TableCell>
+                          <TableCell>
+                            {selectedTransaction.user_details.full_name ||
+                              "N/A"}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>
+                            <strong>Email</strong>
+                          </TableCell>
+                          <TableCell>
+                            {selectedTransaction.user_details.email || "N/A"}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>
+                            <strong>Mobile</strong>
+                          </TableCell>
+                          <TableCell>
+                            {selectedTransaction.user_details.phone_number ||
+                              "N/A"}
+                          </TableCell>
+                        </TableRow>
+                      </>
                     )}
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          ) : (
-            <p className="text-center py-4">No transaction details available</p>
-          )}
-        </DialogContent>
-      </Dialog>
+
+                    {/* Transaction Details */}
+                    <TableRow>
+                      <TableCell>
+                        <strong>Order ID</strong>
+                      </TableCell>
+                      <TableCell>
+                        {selectedTransaction.order_id || "N/A"}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>
+                        <strong>Client Order ID</strong>
+                      </TableCell>
+                      <TableCell>
+                        {selectedTransaction.client_order_id || "N/A"}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>
+                        <strong>Mobile Number</strong>
+                      </TableCell>
+                      <TableCell>
+                        {selectedTransaction.number || "N/A"}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>
+                        <strong>Operator Code</strong>
+                      </TableCell>
+                      <TableCell>
+                        {selectedTransaction.operator_code || "N/A"}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>
+                        <strong>Amount</strong>
+                      </TableCell>
+                      <TableCell>
+                        ${selectedTransaction.amount || "N/A"}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>
+                        <strong>Recharge Type</strong>
+                      </TableCell>
+                      <TableCell>
+                        {selectedTransaction.recharge_type || "N/A"}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>
+                        <strong>Status</strong>
+                      </TableCell>
+                      <TableCell>
+                        {selectedTransaction.status === "1"
+                          ? "Success"
+                          : "Failed"}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>
+                        <strong>UTR</strong>
+                      </TableCell>
+                      <TableCell>{selectedTransaction.utr || "N/A"}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>
+                        <strong>Date & Time</strong>
+                      </TableCell>
+                      <TableCell>
+                        {dayjs(selectedTransaction.created_at).format(
+                          "DD/MM/YYYY hh:mm A"
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              ) : (
+                <p className="text-center py-4">
+                  No transaction details available
+                </p>
+              )}
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
     </>
   );
 };

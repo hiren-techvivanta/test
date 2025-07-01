@@ -40,6 +40,7 @@ import RemoveRedEyeRoundedIcon from "@mui/icons-material/RemoveRedEyeRounded";
 import BlockRoundedIcon from "@mui/icons-material/BlockRounded";
 import RemoveCircleOutlineRoundedIcon from "@mui/icons-material/RemoveCircleOutlineRounded";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
+import Loader from '../../components/Loader'
 
 const UserList = () => {
   const today = dayjs().format("YYYY-MM-DD");
@@ -95,7 +96,8 @@ const UserList = () => {
       url += `&kyc_status=${appliedFilters.kyc_status}`;
     if (appliedFilters.start_date)
       url += `&start_date=${appliedFilters.start_date}`;
-    if (appliedFilters.end_date) url += `&end_date=${appliedFilters.end_date}`;
+    if (appliedFilters.start_date && appliedFilters.end_date)
+      url += `&end_date=${appliedFilters.end_date}`;
 
     try {
       const response = await fetch(url, {
@@ -278,7 +280,7 @@ const UserList = () => {
       filterLabels.push(
         `from ${dayjs(appliedFilters.start_date).format("DD/MM/YYYY")}`
       );
-    if (appliedFilters.end_date)
+    if (appliedFilters.start_date && appliedFilters.end_date)
       filterLabels.push(
         `to ${dayjs(appliedFilters.end_date).format("DD/MM/YYYY")}`
       );
@@ -419,7 +421,10 @@ const UserList = () => {
 
   return (
     <>
-      <div className="container-fluid p-0">
+    {loading === true ? <>
+      <Loader />
+    </> : <>
+    <div className="container-fluid p-0">
         <TopNav />
         <div className="row m-0">
           <div
@@ -473,116 +478,130 @@ const UserList = () => {
 
                 <div className="card mw-100 mt-5 rounded-4 border-0">
                   <div className="card-body">
-                    <div className="overflow-auto ">
-                      <table className="table table-responsive">
-                        <thead>
-                          <tr
-                            className="rounded-4"
-                            style={{ backgroundColor: "#EEEEEE" }}
-                          >
-                            <th>#</th>
-                            <th className="main-table">NAME</th>
-                            <th className="main-table">EMAIL</th>
-                            <th className="main-table">PHONE</th>
-                            <th className="main-table">KYC STATUS</th>
-                            <th>USER STATUS</th>
-                            <th className="main-table text-center">ACTION</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {loading ? (
-                            <tr>
-                              <td colSpan={7} className="text-center py-5">
-                                <CircularProgress />
-                              </td>
-                            </tr>
-                          ) : users.length === 0 ? (
-                            <tr>
-                              <td colSpan={7} className="text-center py-5">
-                                {getNoDataMessage()}
-                              </td>
-                            </tr>
-                          ) : (
-                            users.map((user) => (
-                              <tr key={user.sr_no}>
-                                <td>{user.sr_no}</td>
-                                <td className="main-table">{user.full_name}</td>
-                                <td className="main-table">{user.email}</td>
-                                <td className="main-table">
-                                  {user.phone_number}
-                                </td>
-                                <td className="main-table">
-                                  <span
-                                    className={`badge bg-${
-                                      user.kyc_status === "Approved"
-                                        ? "success"
-                                        : user.kyc_status === "Pending"
-                                        ? "warning"
-                                        : user.kyc_status === "Rejected"
-                                        ? "danger"
-                                        : "dark"
-                                    } py-2`}
-                                  >
-                                    {user.kyc_status}
-                                  </span>
-                                </td>
-                                <td>
-                                  <Switch />
-                                </td>
-                                <td className="main-table">
-                                  <div className="d-flex justify-content-around">
-                                    <Tooltip title="Edit">
-                                      <IconButton color="primary">
-                                        <EditRoundedIcon />
-                                      </IconButton>
-                                    </Tooltip>
-                                    <Tooltip title="View Details">
-                                      <IconButton
-                                        color="info"
-                                        onClick={() => handleViewDetails(user)}
-                                      >
-                                        <VisibilityRoundedIcon />
-                                      </IconButton>
-                                    </Tooltip>
-                                  </div>
-                                </td>
+                    {users?.length === 0 ? (
+                      <>
+                        <h5 className="text-center"> {getNoDataMessage()}</h5>
+                      </>
+                    ) : (
+                      <>
+                        <div className="overflow-auto ">
+                          <table className="table table-responsive">
+                            <thead>
+                              <tr
+                                className="rounded-4"
+                                style={{ backgroundColor: "#EEEEEE" }}
+                              >
+                                <th>#</th>
+                                <th className="main-table">NAME</th>
+                                <th className="main-table">EMAIL</th>
+                                <th className="main-table">PHONE</th>
+                                <th className="main-table">KYC STATUS</th>
+                                <th>USER STATUS</th>
+                                <th className="main-table text-center">
+                                  ACTION
+                                </th>
                               </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                            </thead>
+                            <tbody>
+                              {loading ? (
+                                <tr>
+                                  <td colSpan={7} className="text-center py-5">
+                                    <CircularProgress />
+                                  </td>
+                                </tr>
+                              ) : users.length === 0 ? (
+                                <tr>
+                                  <td colSpan={7} className="text-center py-5">
+                                    {getNoDataMessage()}
+                                  </td>
+                                </tr>
+                              ) : (
+                                users.map((user) => (
+                                  <tr key={user.sr_no}>
+                                    <td>{user.sr_no}</td>
+                                    <td className="main-table">
+                                      {user.full_name}
+                                    </td>
+                                    <td className="main-table">{user.email}</td>
+                                    <td className="main-table">
+                                      {user.phone_number}
+                                    </td>
+                                    <td className="main-table">
+                                      <span
+                                        className={`badge bg-${
+                                          user.kyc_status === "Approved"
+                                            ? "success"
+                                            : user.kyc_status === "Pending"
+                                            ? "warning"
+                                            : user.kyc_status === "Rejected"
+                                            ? "danger"
+                                            : "dark"
+                                        } py-2`}
+                                      >
+                                        {user.kyc_status}
+                                      </span>
+                                    </td>
+                                    <td>
+                                      <Switch />
+                                    </td>
+                                    <td className="main-table">
+                                      <div className="d-flex justify-content-around">
+                                        <Tooltip title="Edit">
+                                          <IconButton color="primary">
+                                            <EditRoundedIcon />
+                                          </IconButton>
+                                        </Tooltip>
+                                        <Tooltip title="View Details">
+                                          <IconButton
+                                            color="info"
+                                            onClick={() =>
+                                              handleViewDetails(user)
+                                            }
+                                          >
+                                            <VisibilityRoundedIcon />
+                                          </IconButton>
+                                        </Tooltip>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
 
-                    <div className="container-fluid mt-4 mb-3">
-                      <div className="row align-items-center">
-                        <div className="col-md-3">
-                          <FormControl variant="standard" fullWidth>
-                            <InputLabel id="results-label">
-                              Results per page
-                            </InputLabel>
-                            <Select
-                              labelId="results-label"
-                              id="results-select"
-                              value={resultsPerPage}
-                              onChange={handleResultsPerPageChange}
-                            >
-                              <MenuItem value={10}>10</MenuItem>
-                              <MenuItem value={25}>25</MenuItem>
-                              <MenuItem value={50}>50</MenuItem>
-                              <MenuItem value={100}>100</MenuItem>
-                            </Select>
-                          </FormControl>
+                        <div className="container-fluid mt-4 mb-3">
+                          <div className="row align-items-center">
+                            <div className="col-md-3">
+                              <FormControl variant="standard" fullWidth>
+                                <InputLabel id="results-label">
+                                  Results per page
+                                </InputLabel>
+                                <Select
+                                  labelId="results-label"
+                                  id="results-select"
+                                  value={resultsPerPage}
+                                  onChange={handleResultsPerPageChange}
+                                >
+                                  <MenuItem value={10}>10</MenuItem>
+                                  <MenuItem value={25}>25</MenuItem>
+                                  <MenuItem value={50}>50</MenuItem>
+                                  <MenuItem value={100}>100</MenuItem>
+                                </Select>
+                              </FormControl>
+                            </div>
+                            <div className="col-md-9 d-flex justify-content-end">
+                              <Pagination
+                                count={totalPages}
+                                page={currentPage}
+                                onChange={handlePageChange}
+                                color="primary"
+                              />
+                            </div>
+                          </div>
                         </div>
-                        <div className="col-md-9 d-flex justify-content-end">
-                          <Pagination
-                            count={totalPages}
-                            page={currentPage}
-                            onChange={handlePageChange}
-                            color="primary"
-                          />
-                        </div>
-                      </div>
-                    </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -912,6 +931,8 @@ const UserList = () => {
           )}
         </DialogContent>
       </Dialog>
+    </>}
+  
     </>
   );
 };

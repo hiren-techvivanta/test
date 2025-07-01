@@ -259,7 +259,7 @@ const MoneyArtTransaction = () => {
       filterLabels.push(
         `from ${dayjs(appliedFilters.start_date).format("DD/MM/YYYY")}`
       );
-    if (appliedFilters.end_date)
+    if (appliedFilters.start_date && appliedFilters.end_date)
       filterLabels.push(
         `to ${dayjs(appliedFilters.end_date).format("DD/MM/YYYY")}`
       );
@@ -465,127 +465,135 @@ const MoneyArtTransaction = () => {
 
                   <div className="card mw-100 mt-5 rounded-4 border-0">
                     <div className="card-body">
-                      <div className="overflow-auto ">
-                        <table className="table table-responsive">
-                          <thead>
-                            <tr
-                              className="rounded-4"
-                              style={{ backgroundColor: "#EEEEEE" }}
-                            >
-                              <th>#</th>
-                              <th className="main-table">DATE & TIME</th>
-                              <th className="main-table">ORDER ID</th>
-                              <th className="main-table">BILL REF NO</th>
-                              <th className="main-table">USER</th>
-                              <th className="main-table">MOBILE NO.</th>
-                              <th className="main-table">STATUS</th>
-                              <th className="main-table">AMOUNT</th>
-                              <th className="main-table">MESSAGE</th>
-                              <th className="main-table text-center">ACTION</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {loading ? (
-                              <tr>
-                                <td colSpan={10} className="text-center py-5">
-                                  <CircularProgress />
-                                </td>
-                              </tr>
-                            ) : transactions.length === 0 ? (
-                              <tr>
-                                <td colSpan={10} className="text-center py-5">
-                                  {getNoDataMessage()}
-                                </td>
-                              </tr>
-                            ) : (
-                              transactions.map((txn, idx) => (
-                                <tr key={txn.id}>
-                                  <td>
-                                    {(pagination.current_page - 1) *
-                                      resultsPerPage +
-                                      idx +
-                                      1}
-                                  </td>
-                                  <td className="main-table">
-                                    {dayjs(txn.created_at).format(
-                                      "DD/MM/YYYY hh:mm A"
-                                    )}
-                                  </td>
-                                  <td className="main-table">{txn.order_id}</td>
-                                  <td className="main-table">
-                                    {txn.bill_ref_no}
-                                  </td>
-                                  <td className="main-table">
-                                    {txn.user_details?.full_name}
-                                  </td>
-                                  <td className="main-table">
-                                    {txn.user_details?.phone_number}
-                                  </td>
-                                  <td className="main-table">
-                                    {getStatusBadge(txn.status)}
-                                  </td>
-                                  <td className="main-table">$ {txn.amount}</td>
-                                  <td className="main-table">
-                                    <Tooltip title={txn.message}>
-                                      <span
-                                        className="text-truncate"
-                                        style={{
-                                          maxWidth: "150px",
-                                          display: "inline-block",
-                                        }}
-                                      >
-                                        {txn.message}
-                                      </span>
-                                    </Tooltip>
-                                  </td>
-                                  <td>
-                                    <div className="d-flex justify-content-around">
-                                      <Tooltip title="View Details">
-                                        <IconButton
-                                          color="info"
-                                          onClick={() => handleViewDetails(txn)}
-                                        >
-                                          <VisibilityRoundedIcon />
-                                        </IconButton>
-                                      </Tooltip>
-                                    </div>
-                                  </td>
+                      {transactions?.length === 0 ? (
+                        <>
+                          <h5 className="text-center">{getNoDataMessage()}</h5>
+                        </>
+                      ) : (
+                        <>
+                          <div className="overflow-auto ">
+                            <table className="table table-responsive">
+                              <thead>
+                                <tr
+                                  className="rounded-4"
+                                  style={{ backgroundColor: "#EEEEEE" }}
+                                >
+                                  <th>#</th>
+                                  <th className="main-table">DATE & TIME</th>
+                                  <th className="main-table">ORDER ID</th>
+                                  <th className="main-table">BILL REF NO</th>
+                                  <th className="main-table">USER</th>
+                                  <th className="main-table">MOBILE NO.</th>
+                                  <th className="main-table">STATUS</th>
+                                  <th className="main-table">AMOUNT</th>
+                                  <th className="main-table text-center">
+                                    ACTION
+                                  </th>
                                 </tr>
-                              ))
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                      <div className="container-fluid mt-4 mb-3">
-                        <div className="row align-items-center">
-                          <div className="col-md-3">
-                            <FormControl variant="standard" fullWidth>
-                              <InputLabel id="results-label">
-                                Results per page
-                              </InputLabel>
-                              <Select
-                                labelId="results-label"
-                                id="results-select"
-                                value={resultsPerPage}
-                                onChange={handleResultsPerPageChange}
-                              >
-                                <MenuItem value={10}>10</MenuItem>
-                                <MenuItem value={25}>25</MenuItem>
-                                <MenuItem value={50}>50</MenuItem>
-                                <MenuItem value={100}>100</MenuItem>
-                              </Select>
-                            </FormControl>
+                              </thead>
+                              <tbody>
+                                {loading ? (
+                                  <tr>
+                                    <td
+                                      colSpan={10}
+                                      className="text-center py-5"
+                                    >
+                                      <CircularProgress />
+                                    </td>
+                                  </tr>
+                                ) : transactions.length === 0 ? (
+                                  <tr>
+                                    <td
+                                      colSpan={10}
+                                      className="text-center py-5"
+                                    >
+                                      {getNoDataMessage()}
+                                    </td>
+                                  </tr>
+                                ) : (
+                                  transactions.map((txn, idx) => (
+                                    <tr key={txn.id}>
+                                      <td>
+                                        {(pagination.current_page - 1) *
+                                          resultsPerPage +
+                                          idx +
+                                          1}
+                                      </td>
+                                      <td className="main-table">
+                                        {dayjs(txn.created_at).format(
+                                          "DD/MM/YYYY hh:mm A"
+                                        )}
+                                      </td>
+                                      <td className="main-table">
+                                        {txn.order_id}
+                                      </td>
+                                      <td className="main-table">
+                                        {txn.bill_ref_no}
+                                      </td>
+                                      <td className="main-table">
+                                        {txn.user_details?.full_name}
+                                      </td>
+                                      <td className="main-table">
+                                        {txn.user_details?.phone_number}
+                                      </td>
+                                      <td className="main-table">
+                                        {getStatusBadge(txn.status)}
+                                      </td>
+                                      <td className="main-table">
+                                        $ {txn.amount}
+                                      </td>
+                                      <td>
+                                        <div className="d-flex justify-content-around">
+                                          <Tooltip title="View Details">
+                                            <IconButton
+                                              color="info"
+                                              onClick={() =>
+                                                handleViewDetails(txn)
+                                              }
+                                            >
+                                              <VisibilityRoundedIcon />
+                                            </IconButton>
+                                          </Tooltip>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  ))
+                                )}
+                              </tbody>
+                            </table>
                           </div>
-                          <div className="col-md-9 d-flex justify-content-end">
-                            <Pagination
-                              count={pagination.total_pages}
-                              page={pagination.current_page}
-                              onChange={handlePageChange}
-                              color="primary"
-                            />
+                          <div className="container-fluid mt-4 mb-3">
+                            <div className="row align-items-center">
+                              <div className="col-md-3">
+                                <FormControl variant="standard" fullWidth>
+                                  <InputLabel id="results-label">
+                                    Results per page
+                                  </InputLabel>
+                                  <Select
+                                    labelId="results-label"
+                                    id="results-select"
+                                    value={resultsPerPage}
+                                    onChange={handleResultsPerPageChange}
+                                  >
+                                    <MenuItem value={10}>10</MenuItem>
+                                    <MenuItem value={25}>25</MenuItem>
+                                    <MenuItem value={50}>50</MenuItem>
+                                    <MenuItem value={100}>100</MenuItem>
+                                  </Select>
+                                </FormControl>
+                              </div>
+                              <div className="col-md-9 d-flex justify-content-end">
+                                <Pagination
+                                  count={pagination.total_pages}
+                                  page={pagination.current_page}
+                                  onChange={handlePageChange}
+                                  color="primary"
+                                />
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

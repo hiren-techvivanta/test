@@ -188,7 +188,7 @@ const UserRefList = () => {
     if (email) filters.push(`email: ${email}`);
     if (startDate)
       filters.push(`from ${dayjs(startDate).format("DD/MM/YYYY")}`);
-    if (endDate) filters.push(`to ${dayjs(endDate).format("DD/MM/YYYY")}`);
+    if (startDate && endDate) filters.push(`to ${dayjs(endDate).format("DD/MM/YYYY")}`);
 
     if (filters.length > 0) {
       message += ` with ${filters.join(" and ")}`;
@@ -368,10 +368,10 @@ const UserRefList = () => {
                                         </table>
                                       </div>
                                       <hr />
-                                      <h5 className="text-center mt-2">
+                                      <h5 className="text-center mt-4">
                                         Referred Users
                                       </h5>
-                                      <div className="card-body">
+                                      <div className="card-body" style={{backgroundColor : "#f5faff"}}>
                                         {referral.referred_users.length > 0 ? (
                                           <div
                                             className="accordion accordion-alt accordion-orders"

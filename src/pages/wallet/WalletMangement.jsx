@@ -225,7 +225,7 @@ const WalletManagement = () => {
                         </div>
                         <div className="row m-0">
                           <div className="col-md-6">
-                            <label className="form-label">Amount</label>
+                            <label className="form-label">Amount (In '$')</label>
                             <TextField
                               fullWidth
                               value={amount}

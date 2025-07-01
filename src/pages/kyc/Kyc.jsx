@@ -33,6 +33,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import dayjs from "dayjs";
 import FilterListIcon from "@mui/icons-material/FilterList";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
 
 const Kyc = () => {
   // State variables
@@ -57,6 +58,7 @@ const Kyc = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState(dayjs().format("YYYY-MM-DD"));
   const [openFilter, setOpenFilter] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   // Error states
   const [emailError, setEmailError] = useState("");
@@ -176,7 +178,7 @@ const Kyc = () => {
         ...(email && { email }),
         ...(status && { status }),
         ...(startDate && { start_date: startDate }),
-        ...(endDate && { end_date: endDate }),
+        ...(startDate && endDate && { end_date: endDate }),
       };
 
       const { data } = await axios.get(
@@ -328,13 +330,11 @@ const Kyc = () => {
                             : "N/A"}
                         </TableCell>
                       </TableRow>
-                       <TableRow>
+                      <TableRow>
                         <TableCell>
                           <strong>Nationality</strong>
                         </TableCell>
-                        <TableCell>
-                          {kycData?.nationality || "N/A"}
-                        </TableCell>
+                        <TableCell>{kycData?.nationality || "N/A"}</TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell>
@@ -455,7 +455,8 @@ const Kyc = () => {
     if (status) filterLabels.push(`status: ${status}`);
     if (startDate)
       filterLabels.push(`from ${dayjs(startDate).format("DD/MM/YYYY")}`);
-    if (endDate) filterLabels.push(`to ${dayjs(endDate).format("DD/MM/YYYY")}`);
+    if (startDate && endDate)
+      filterLabels.push(`to ${dayjs(endDate).format("DD/MM/YYYY")}`);
 
     if (filterLabels.length > 0) {
       message += ` with ${filterLabels.join(", ")}`;
@@ -464,150 +465,276 @@ const Kyc = () => {
     return message;
   };
 
+   const fetchExportData = async () => {
+    setExporting(true);
+
+    try {
+      let url = `${process.env.REACT_APP_BACKEND_URL}/api/auth/admin/kyc`;
+
+      // Only include non-empty filters
+       const params = {
+        ...(email && { email }),
+        ...(status && { status }),
+        ...(startDate && { start_date: startDate }),
+        ...(startDate && endDate && { end_date: endDate }),
+      };
+
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },params
+      });
+
+      const data = await response.json();
+
+      if (data.status === 200) {
+        // Create filename with timestamp
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const fileName = `wave_money_${timestamp}_kyc_list`;
+
+        // Flatten nested objects for CSV
+        const flattenedUsers = data.data.kyc_submissions.map((v) => ({
+          id: v.id,
+          email: v.user_details.email,
+          full_name: v.user_details.full_name,
+          phone_number: v.user_details.phone_number,
+          status:v.status,
+          documentType : v.document_type,
+          documentNumber : v.document_number,
+          dateOfBirth: v.date_of_birth,
+          nationality: v.nationality,
+          residentialAddress : `${v.residential_address.line1} ${v.residential_address.line2} ${v.residential_address.city} ${v.residential_address.state} ${v.residential_address.postal_code} ${v.residential_address.country} || ""`,
+          adminMessage: v.admin_message || "",
+        }));
+
+        // Define CSV columns
+        const columns = [
+          { id: "id", title: "Id" },
+          { id: "email", title: "Email" },
+          { id: "full_name", title: "Full Name" },
+          { id: "phone_number", title: "Phone Number" },
+          { id: "status", title: "Status" },
+          { id: "documentType", title: "Document Type" },
+          { id: "documentNumber", title: "Document Number" },
+          { id: "dateOfBirth", title: "Date Of Birth" },
+          { id: "nationality", title: "Nationality" },
+          { id: "residentialAddress", title: "Residential Address" },
+          { id: "adminMessage", title: "Admin Message" }
+        ];
+
+        // Escape CSV fields
+        const escapeField = (field) => {
+          if (field == null) return "";
+          const str = String(field);
+          return str.includes(",") || str.includes('"') || str.includes("\n")
+            ? `"${str.replace(/"/g, '""')}"`
+            : str;
+        };
+
+        // Generate CSV content
+        const headerRow = columns
+          .map((col) => escapeField(col.title))
+          .join(",");
+        const dataRows = flattenedUsers.map((user) =>
+          columns.map((col) => escapeField(user[col.id])).join(",")
+        );
+
+        const csvContent = [headerRow, ...dataRows].join("\n");
+        const blob = new Blob([csvContent], {
+          type: "text/csv;charset=utf-8;",
+        });
+
+        // Trigger download
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${fileName}.csv`;
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        console.error("Export failed:", data.message);
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <>
-      <div className="container-fluid p-0">
-        <TopNav />
-        <div className="row m-0">
-          <div
-            className="col-3 p-0"
-            style={{ maxHeight: "100%", overflowY: "auto" }}
-          >
-            <SideNav />
-          </div>
-          <div className="col-9">
+      {loading === true ? (
+        <>
+          <Loader />
+        </>
+      ) : (
+        <>
+          <div className="container-fluid p-0">
+            <TopNav />
             <div className="row m-0">
               <div
-                className="col-12 py-3"
-                style={{ background: "#EEEEEE", minHeight: "93vh" }}
+                className="col-3 p-0"
+                style={{ maxHeight: "100%", overflowY: "auto" }}
               >
-                <div className="frame-1597880849">
-                  <div className="all-members-list">Users KYC List</div>
+                <SideNav />
+              </div>
+              <div className="col-9">
+                <div className="row m-0">
+                  <div
+                    className="col-12 py-3"
+                    style={{ background: "#EEEEEE", minHeight: "93vh" }}
+                  >
+                    <div className="frame-1597880849">
+                      <div className="all-members-list">Users KYC List</div>
 
-                  <div className="frame-1597880735">
-                    <div className="frame-15978807352">
-                      <Button
-                        variant="contained"
-                        startIcon={<FilterListIcon />}
-                        className="filter"
-                        sx={{ padding: "0 16px", height: "48px" }}
-                        disableElevation
-                        onClick={() => setOpenFilter(true)}
-                      >
-                        Filter
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="card mw-100 mt-5 rounded-4 border-0">
-                  <div className="card-body">
-                    {loading ? (
-                      <div className="text-center py-5">
-                        <CircularProgress />
-                      </div>
-                    ) : (
-                      <div className="overflow-auto">
-                        <table className="table table-responsive">
-                          <thead>
-                            <tr
-                              className="rounded-4"
-                              style={{ backgroundColor: "#EEEEEE" }}
-                            >
-                              <th>#</th>
-                              <th className="main-table">NAME</th>
-                              <th className="main-table">EMAIL</th>
-                              <th className="main-table">MOBILE</th>
-                              <th className="main-table">STATUS</th>
-                              <th className="main-table text-center">ACTION</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {kycSubmissions.length === 0 ? (
-                              <tr>
-                                <td colSpan={6} className="text-center py-5">
-                                  {getNoDataMessage()}
-                                </td>
-                              </tr>
+                      <div className="frame-1597880735">
+                        <div className="frame-1597880734">
+                          <Button
+                            variant="contained"
+                            className="excel"
+                            sx={{ padding: "0 16px", height: "48px" }}
+                            onClick={fetchExportData}
+                            disabled={exporting}
+                          >
+                            {exporting ? (
+                              <CircularProgress size={24} color="inherit" />
                             ) : (
-                              kycSubmissions.map((submission, index) => (
-                                <tr key={submission.id}>
-                                  <td>
-                                    {index +
-                                      1 +
-                                      (pagination.current_page - 1) *
-                                        pagination.page_size}
-                                  </td>
-                                  <td className="main-table">
-                                    {submission.user_details?.full_name ||
-                                      "N/A"}
-                                  </td>
-                                  <td className="main-table">
-                                    {submission.user_details?.email || "N/A"}
-                                  </td>
-                                  <td className="main-table">
-                                    {submission.user_details?.phone_number ||
-                                      "N/A"}
-                                  </td>
-                                  <td className="main-table">
-                                    <span
-                                      className={`badge bg-${
-                                        submission.status === "Approved"
-                                          ? "success"
-                                          : submission.status === "Pending"
-                                          ? "warning"
-                                          : "danger"
-                                      } py-2`}
-                                    >
-                                      {submission.status}
-                                    </span>
-                                  </td>
-                                  <td className="main-table">
-                                    <div className="d-flex justify-content-around">
-                                      <Tooltip title="View Details">
-                                        <IconButton
-                                          color="info"
-                                          onClick={() =>
-                                            handleViewDetails(submission.id)
-                                          }
-                                        >
-                                          <VisibilityRoundedIcon />
-                                        </IconButton>
-                                      </Tooltip>
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))
+                              <>
+                                <FileDownloadIcon className="me-2" /> Export
+                              </>
                             )}
-                          </tbody>
-                        </table>
+                          </Button>
+                        </div>
+                        <div className="frame-15978807352">
+                          <Button
+                            variant="contained"
+                            startIcon={<FilterListIcon />}
+                            className="filter"
+                            sx={{ padding: "0 16px", height: "48px" }}
+                            disableElevation
+                            onClick={() => setOpenFilter(true)}
+                          >
+                            Filter
+                          </Button>
+                        </div>
                       </div>
-                    )}
+                    </div>
 
-                    <div className="container-fluid mt-4 mb-3">
-                      <div className="row align-items-center">
-                        <div className="col-md-3">
-                          <FormControl variant="standard" fullWidth>
-                            <InputLabel>Results per page</InputLabel>
-                            <Select
-                              value={pagination.page_size}
-                              onChange={handlePageSizeChange}
-                            >
-                              <MenuItem value={10}>10</MenuItem>
-                              <MenuItem value={25}>25</MenuItem>
-                              <MenuItem value={50}>50</MenuItem>
-                              <MenuItem value={100}>100</MenuItem>
-                            </Select>
-                          </FormControl>
-                        </div>
-                        <div className="col-md-9 d-flex justify-content-end">
-                          <Pagination
-                            count={pagination.total_pages}
-                            page={pagination.current_page}
-                            onChange={handlePageChange}
-                            color="primary"
-                          />
-                        </div>
+                    <div className="card mw-100 mt-5 rounded-4 border-0">
+                      <div className="card-body">
+                        {kycSubmissions.length === 0 ? (
+                          <h5 className="text-center">{getNoDataMessage()}</h5>
+                        ) : (
+                          <>
+                            <div className="overflow-auto">
+                              <table className="table table-responsive">
+                                <thead>
+                                  <tr
+                                    className="rounded-4"
+                                    style={{ backgroundColor: "#EEEEEE" }}
+                                  >
+                                    <th>#</th>
+                                    <th className="main-table">NAME</th>
+                                    <th className="main-table">EMAIL</th>
+                                    <th className="main-table">MOBILE</th>
+                                    <th className="">STATUS</th>
+                                    <th className="text-center">ACTION</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {kycSubmissions.length === 0 ? (
+                                    <tr>
+                                      <td
+                                        colSpan={6}
+                                        className="text-center py-5"
+                                      >
+                                        {getNoDataMessage()}
+                                      </td>
+                                    </tr>
+                                  ) : (
+                                    kycSubmissions.map((submission, index) => (
+                                      <tr key={submission.id}>
+                                        <td>
+                                          {index +
+                                            1 +
+                                            (pagination.current_page - 1) *
+                                              pagination.page_size}
+                                        </td>
+                                        <td className="main-table">
+                                          {submission.user_details?.full_name ||
+                                            "N/A"}
+                                        </td>
+                                        <td className="main-table">
+                                          {submission.user_details?.email ||
+                                            "N/A"}
+                                        </td>
+                                        <td className="main-table">
+                                          {submission.user_details
+                                            ?.phone_number || "N/A"}
+                                        </td>
+                                        <td className="">
+                                          <span
+                                            className={`badge bg-${
+                                              submission.status === "Approved"
+                                                ? "success"
+                                                : submission.status ===
+                                                  "Pending"
+                                                ? "warning"
+                                                : "danger"
+                                            } py-2`}
+                                          >
+                                            {submission.status}
+                                          </span>
+                                        </td>
+                                        <td className="">
+                                          <div className="d-flex justify-content-around">
+                                            <Tooltip title="View Details">
+                                              <IconButton
+                                                color="info"
+                                                onClick={() =>
+                                                  handleViewDetails(
+                                                    submission.id
+                                                  )
+                                                }
+                                              >
+                                                <VisibilityRoundedIcon />
+                                              </IconButton>
+                                            </Tooltip>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    ))
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                            <div className="container-fluid mt-4 mb-3">
+                              <div className="row align-items-center">
+                                <div className="col-md-3">
+                                  <FormControl variant="standard" fullWidth>
+                                    <InputLabel>Results per page</InputLabel>
+                                    <Select
+                                      value={pagination.page_size}
+                                      onChange={handlePageSizeChange}
+                                    >
+                                      <MenuItem value={10}>10</MenuItem>
+                                      <MenuItem value={25}>25</MenuItem>
+                                      <MenuItem value={50}>50</MenuItem>
+                                      <MenuItem value={100}>100</MenuItem>
+                                    </Select>
+                                  </FormControl>
+                                </div>
+                                <div className="col-md-9 d-flex justify-content-end">
+                                  <Pagination
+                                    count={pagination.total_pages}
+                                    page={pagination.current_page}
+                                    onChange={handlePageChange}
+                                    color="primary"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -615,146 +742,149 @@ const Kyc = () => {
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Filter Modal */}
-      <Modal
-        open={openFilter}
-        onClose={() => setOpenFilter(false)}
-        aria-labelledby="filter-modal-title"
-        aria-describedby="filter-modal-description"
-      >
-        <Box
-          sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: 700,
-            bgcolor: "#fff",
-            boxShadow: 24,
-            p: 3,
-            borderRadius: "12px",
-          }}
-        >
-          <Typography
-            id="filter-modal-title"
-            className="fw-semibold"
-            variant="h6"
-            component="h2"
+          {/* Filter Modal */}
+          <Modal
+            open={openFilter}
+            onClose={() => setOpenFilter(false)}
+            aria-labelledby="filter-modal-title"
+            aria-describedby="filter-modal-description"
           >
-            Search Records
-          </Typography>
-          <hr />
-
-          <div className="row g-3 mt-3">
-            <div className="col-md-6">
-              <label className="form-label">Email</label>
-              <TextField
-                fullWidth
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                error={!!emailError}
-                helperText={emailError}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: "12px",
-                    backgroundColor: "#f5f5f5",
-                  },
-                }}
-              />
-            </div>
-            <div className="col-md-6">
-              <label className="form-label">Status</label>
-              <FormControl fullWidth>
-                <Select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  sx={{
-                    "& .MuiSelect-select": {
-                      borderRadius: "12px",
-                      backgroundColor: "#f5f5f5",
-                    },
-                  }}
-                >
-                  <MenuItem value="">All</MenuItem>
-                  <MenuItem value="Pending">Pending</MenuItem>
-                  <MenuItem value="Approved">Approved</MenuItem>
-                  <MenuItem value="Rejected">Rejected</MenuItem>
-                </Select>
-              </FormControl>
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label">Start Date</label>
-              <TextField
-                fullWidth
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                error={!!dateError}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: "12px",
-                    backgroundColor: "#f5f5f5",
-                  },
-                }}
-                inputProps={{
-                  min: minDate,
-                  max: today,
-                }}
-              />
-            </div>
-            <div className="col-md-6">
-              <label className="form-label">End Date</label>
-              <TextField
-                fullWidth
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                error={!!dateError}
-                helperText={dateError}
-                disabled={!startDate}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: "12px",
-                    backgroundColor: "#f5f5f5",
-                  },
-                }}
-                inputProps={{
-                  min: startDate || minDate,
-                  max: today,
-                }}
-              />
-            </div>
-            <div className="col-6">
-              <Button
-                variant="contained"
-                onClick={handleFilterSubmit}
-                className="me-2 w-100"
-                sx={{ height: "45px" }}
+            <Box
+              sx={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                width: 700,
+                bgcolor: "#fff",
+                boxShadow: 24,
+                p: 3,
+                borderRadius: "12px",
+              }}
+            >
+              <Typography
+                id="filter-modal-title"
+                className="fw-semibold"
+                variant="h6"
+                component="h2"
               >
-                Apply
-              </Button>
-            </div>
-            <div className="col-6">
-              <Button
-                variant="outlined"
-                className="w-100"
-                onClick={resetFilters}
-                sx={{ height: "45px" }}
-              >
-                Reset
-              </Button>
-            </div>
-          </div>
-        </Box>
-      </Modal>
+                Search Records
+              </Typography>
+              <hr />
 
-      <StatusUpdateModal show={modalShow} onHide={() => setModalShow(false)} />
+              <div className="row g-3 mt-3">
+                <div className="col-md-6">
+                  <label className="form-label">Email</label>
+                  <TextField
+                    fullWidth
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    error={!!emailError}
+                    helperText={emailError}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: "12px",
+                        backgroundColor: "#f5f5f5",
+                      },
+                    }}
+                  />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">Status</label>
+                  <FormControl fullWidth>
+                    <Select
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value)}
+                      sx={{
+                        "& .MuiSelect-select": {
+                          borderRadius: "12px",
+                          backgroundColor: "#f5f5f5",
+                        },
+                      }}
+                    >
+                      <MenuItem value="">All</MenuItem>
+                      <MenuItem value="Pending">Pending</MenuItem>
+                      <MenuItem value="Approved">Approved</MenuItem>
+                      <MenuItem value="Rejected">Rejected</MenuItem>
+                    </Select>
+                  </FormControl>
+                </div>
+
+                <div className="col-md-6">
+                  <label className="form-label">Start Date</label>
+                  <TextField
+                    fullWidth
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    error={!!dateError}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: "12px",
+                        backgroundColor: "#f5f5f5",
+                      },
+                    }}
+                    inputProps={{
+                      min: minDate,
+                      max: today,
+                    }}
+                  />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">End Date</label>
+                  <TextField
+                    fullWidth
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    error={!!dateError}
+                    helperText={dateError}
+                    disabled={!startDate}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: "12px",
+                        backgroundColor: "#f5f5f5",
+                      },
+                    }}
+                    inputProps={{
+                      min: startDate || minDate,
+                      max: today,
+                    }}
+                  />
+                </div>
+                <div className="col-6">
+                  <Button
+                    variant="contained"
+                    onClick={handleFilterSubmit}
+                    className="me-2 w-100"
+                    sx={{ height: "45px" }}
+                  >
+                    Apply
+                  </Button>
+                </div>
+                <div className="col-6">
+                  <Button
+                    variant="outlined"
+                    className="w-100"
+                    onClick={resetFilters}
+                    sx={{ height: "45px" }}
+                  >
+                    Reset
+                  </Button>
+                </div>
+              </div>
+            </Box>
+          </Modal>
+
+          <StatusUpdateModal
+            show={modalShow}
+            onHide={() => setModalShow(false)}
+          />
+        </>
+      )}
     </>
   );
 };

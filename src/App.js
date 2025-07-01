@@ -28,11 +28,13 @@ import BankAccountList from "./pages/bank/BankAccountList.jsx";
 import WalletTopup from "./pages/wallet/WalletTopup.jsx";
 import UserRefList from "./pages/referrals/UserRefList.jsx";
 import FlightBooking from "./pages/flightBooking/FlightBooking.jsx";
+import ScrollToTop from "./components/ScrollToTop.jsx";
 
 function App() {
   return (
     <ThemeProvider theme={createCustomTheme}>
       <BrowserRouter>
+      <ScrollToTop />
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/sub-admin" element={<Subadmin />} />
