@@ -106,9 +106,9 @@ const BankAccountList = () => {
     }
   };
 
-  useEffect(() => {
-    if (token) fetchAccounts();
-  }, [token, appliedFilters, resultsPerPage]);
+useEffect(() => {
+  if (token) fetchAccounts(currentPage); 
+}, [token, appliedFilters, resultsPerPage, currentPage]);
 
   const handlePageChange = (event, page) => {
     setCurrentPage(page);

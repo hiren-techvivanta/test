@@ -135,8 +135,8 @@ const AeroPayCardList = () => {
     }
 
     // Mobile validation
-    if (filters.mobile_number && !/^\d{10}$/.test(filters.mobile_number)) {
-      setMobileError("Mobile must be 10 digits");
+    if (filters.mobile_number && !/^\d{8,15}$/.test(filters.mobile_number)) {
+      setMobileError("Mobile must be 8 to 15 digits");
       isValid = false;
     } else {
       setMobileError("");
@@ -431,6 +431,8 @@ const AeroPayCardList = () => {
                           >
                             <th>#</th>
                             <th className="main-table">CARD HOLDER</th>
+                            <th className="main-table">CARD HOLDER EMAIL</th>
+                            <th className="main-table">CARD HOLDER PHONE</th>
                             <th className="main-table">CARD NUMBER</th>
                             <th className="main-table">STATUS</th>
                             <th className="main-table">TYPE</th>
@@ -460,6 +462,8 @@ const AeroPayCardList = () => {
                                     1}
                                 </td>
                                 <td className="main-table">{card.user_details?.full_name || "N/A"}</td>
+                                <td className="main-table">{card.user_details?.email || "N/A"}</td>
+                                <td className="main-table">{card.user_details?.phone_number || "N/A"}</td>
                                 <td className="main-table">{card.masked_pan || "N/A"}</td>
                                 <td className="main-table">{getStatusBadge(card.status)}</td>
                                 <td className="main-table">{card.type}</td>
@@ -579,7 +583,7 @@ const AeroPayCardList = () => {
                 value={filters.mobile_number}
                 onChange={(e) => {
                   const value = e.target.value;
-                  if (value === "" || /^\d{0,10}$/.test(value)) {
+                  if (value === "" || /^\d{0,15}$/.test(value)) {
                     handleFilterChange("mobile_number", value);
                   }
                 }}
@@ -591,7 +595,7 @@ const AeroPayCardList = () => {
                 }}
                 error={!!mobileError}
                 helperText={mobileError}
-                inputProps={{ maxLength: 10 }}
+                inputProps={{ maxLength: 15 }}
               />
             </div>
 

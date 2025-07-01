@@ -151,8 +151,8 @@ const MobileRechargeTransaction = () => {
     }
 
     // Mobile validation
-    if (filters.mobile_number && !/^\d{10}$/.test(filters.mobile_number)) {
-      setMobileError("Mobile must be 10 digits");
+    if (filters.mobile_number && !/^\d{8,15}$/.test(filters.mobile_number)) {
+      setMobileError("Mobile must be 8 to 10 digits");
       isValid = false;
     } else {
       setMobileError("");
@@ -622,7 +622,7 @@ const MobileRechargeTransaction = () => {
                 value={filters.mobile_number}
                 onChange={(e) => {
                   const value = e.target.value;
-                  if (value === "" || /^\d{0,10}$/.test(value)) {
+                  if (value === "" || /^\d{0,15}$/.test(value)) {
                     handleFilterChange("mobile_number", value);
                   }
                 }}
@@ -634,7 +634,7 @@ const MobileRechargeTransaction = () => {
                 }}
                 error={!!mobileError}
                 helperText={mobileError}
-                inputProps={{ maxLength: 10 }}
+                inputProps={{ maxLength: 15 }}
               />
             </div>
 

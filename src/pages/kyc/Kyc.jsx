@@ -273,7 +273,7 @@ const Kyc = () => {
     }, [props.show, id]);
 
     return (
-      <Dialog open={props.show} onClose={props.onHide} maxWidth="md" fullWidth>
+      <Dialog open={props.show} onClose={props.onHide} maxWidth="lg" fullWidth>
         <DialogTitle>Update KYC Status</DialogTitle>
         <DialogContent style={{ maxHeight: "80vh", overflow: "auto" }}>
           <div className="container-fluid p-0">
@@ -328,6 +328,14 @@ const Kyc = () => {
                             : "N/A"}
                         </TableCell>
                       </TableRow>
+                       <TableRow>
+                        <TableCell>
+                          <strong>Nationality</strong>
+                        </TableCell>
+                        <TableCell>
+                          {kycData?.nationality || "N/A"}
+                        </TableCell>
+                      </TableRow>
                       <TableRow>
                         <TableCell>
                           <strong>Document No.</strong>
@@ -345,9 +353,8 @@ const Kyc = () => {
                 {kycData?.document_image && (
                   <img
                     src={`${process.env.REACT_APP_BACKEND_URL}${kycData.document_image}`}
-                    className="img-fluid rounded"
+                    className="img-fluid rounded w-100"
                     alt="Document"
-                    style={{ maxHeight: "300px" }}
                   />
                 )}
               </div>
@@ -356,9 +363,8 @@ const Kyc = () => {
                 <div className="col-12">
                   <img
                     src={`${process.env.REACT_APP_BACKEND_URL}${kycData.document_back}`}
-                    className="img-fluid rounded mt-2"
+                    className="img-fluid rounded mt-2 w-100"
                     alt="Document Back"
-                    style={{ maxHeight: "300px" }}
                   />
                 </div>
               )}

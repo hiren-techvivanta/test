@@ -126,6 +126,7 @@ const SendNotification = () => {
                                   backgroundColor: "#f5f5f5",
                                 },
                               }}
+                              inputProps={{ maxLength: 40 }}
                             />
                           </div>
 
@@ -147,6 +148,7 @@ const SendNotification = () => {
                                   backgroundColor: "#f5f5f5",
                                 },
                               }}
+                              inputProps={{ maxLength: 120 }}
                             />
                           </div>
 
