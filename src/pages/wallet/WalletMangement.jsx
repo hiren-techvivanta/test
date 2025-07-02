@@ -181,6 +181,9 @@ const WalletManagement = () => {
                                 borderRadius: "12px",
                                 backgroundColor: "#f5f5f5",
                               },
+                              // "& .MuiFormHelperText-root": {
+                              //   textTransform:"capitalize"
+                              // },
                             }}
                             disabled={loading || balance}
                           />

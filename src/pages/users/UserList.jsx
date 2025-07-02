@@ -495,9 +495,9 @@ const UserList = () => {
                                 <th className="main-table">NAME</th>
                                 <th className="main-table">EMAIL</th>
                                 <th className="main-table">PHONE</th>
-                                <th className="main-table">KYC STATUS</th>
+                                <th className="main-table-2">KYC STATUS</th>
                                 <th className="main-table-2">STATUS</th>
-                                <th className="main-table text-center">
+                                <th className=" text-center">
                                   ACTION
                                 </th>
                               </tr>
@@ -526,7 +526,7 @@ const UserList = () => {
                                     <td className="main-table">
                                       {user.phone_number}
                                     </td>
-                                    <td className="main-table">
+                                    <td className="main-table-2">
                                       <span
                                         className={`badge bg-${
                                           user.kyc_status === "Approved"
@@ -544,7 +544,7 @@ const UserList = () => {
                                     <td>
                                       <Switch />
                                     </td>
-                                    <td className="main-table">
+                                    <td className="">
                                       <div className="d-flex justify-content-around">
                                         <Tooltip title="Edit">
                                           <IconButton color="primary">

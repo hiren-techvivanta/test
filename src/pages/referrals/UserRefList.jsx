@@ -277,6 +277,17 @@ const UserRefList = () => {
                                         className="d-flex justify-content-between w-100 overflow-auto"
                                         style={{ maxWidth: "100%" }}
                                       >
+                                       <div className="me-1 me-sm-1">
+                                        <div className="fs-sm text-body-secondary mb-2">
+                                            #
+                                          </div>
+                                          <div className="fs-sm fw-medium text-dark">
+                                           {(pagination.current_page - 1) *
+                                            resultsPerPage +
+                                            index +
+                                            1}
+                                          </div>
+                                       </div>
                                         <div className="me-3 me-sm-4">
                                           <div className="fs-sm text-body-secondary mb-2">
                                             Email
