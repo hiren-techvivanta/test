@@ -17728,8 +17728,8 @@ img-comparison-slider:focus {
   place-items: center;
 }
 
-thead > tr > .main-table {
-  font-weight: 700;
+thead > tr > th {
+  font-weight: 700 !important;
 }
 
 .main-table {
