@@ -274,7 +274,7 @@ const UserRefList = () => {
                                       aria-controls={`order-${index}`}
                                     >
                                       <div
-                                        className="d-flex justify-content-between w-100 overflow-auto"
+                                        className="d-flex justify-content-around w-100 overflow-auto"
                                         style={{ maxWidth: "100%" }}
                                       >
                                        <div className="me-1 me-sm-1">

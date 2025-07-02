@@ -459,7 +459,7 @@ const WalletTransaction = () => {
                                         </td>
                                         <td>
                                           <span
-                                            className={`badge bg-${
+                                            className={`badge text-capitalize bg-${
                                               txn.transaction_type === "credit"
                                                 ? "success"
                                                 : "danger"
