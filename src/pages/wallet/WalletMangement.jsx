@@ -8,12 +8,6 @@ import { Button, TextField } from "@mui/material";
 
 const token = Cookies.get("authToken");
 
-const config = {
-  headers: {
-    Authorization: `Bearer ${token}`,
-  },
-};
-
 const WalletManagement = () => {
   const [email, setEmail] = useState("");
   const [balance, setBalance] = useState(null);
@@ -29,6 +23,12 @@ const WalletManagement = () => {
     e.preventDefault();
     setLoading(true);
     setEmailError("");
+
+    const config = {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
 
     try {
       const response = await axios.post(
@@ -94,6 +94,12 @@ const WalletManagement = () => {
     if (!confirmed) return;
 
     setActionLoading(type);
+
+    const config = {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
 
     try {
       const { data } = await axios.post(
@@ -225,7 +231,9 @@ const WalletManagement = () => {
                         </div>
                         <div className="row m-0">
                           <div className="col-md-6">
-                            <label className="form-label">Amount (In '$')</label>
+                            <label className="form-label">
+                              Amount (In '$')
+                            </label>
                             <TextField
                               fullWidth
                               value={amount}

@@ -475,9 +475,9 @@ const MobileRechargeTransaction = () => {
                                     <th className="main-table">USER NAME</th>
                                     <th className="main-table">EMAIL</th>
                                     <th className="main-table">MOBILE NO.</th>
-                                    <th className="main-table">STATUS</th>
-                                    <th className="main-table">AMOUNT</th>
-                                    <th className="main-table text-center">
+                                    <th className="main-table-2">STATUS</th>
+                                    <th className="main-table-2">AMOUNT</th>
+                                    <th className="text-center">
                                       ACTION
                                     </th>
                                   </tr>
@@ -527,7 +527,7 @@ const MobileRechargeTransaction = () => {
                                           {txn.user_details?.phone_number ||
                                             "N/A"}
                                         </td>
-                                        <td className="main-table">
+                                        <td className="main-table-2">
                                           <span
                                             className={`badge bg-${
                                               txn.status === "1"
@@ -540,10 +540,10 @@ const MobileRechargeTransaction = () => {
                                               : "Failed"}
                                           </span>
                                         </td>
-                                        <td className="main-table">
+                                        <td className="main-table-2">
                                           $ {txn.amount}
                                         </td>
-                                        <td className="main-table">
+                                        <td className="">
                                           <div className="d-flex justify-content-around">
                                             <Tooltip title="View Details">
                                               <IconButton

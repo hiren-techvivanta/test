@@ -110,7 +110,7 @@ const Login = () => {
             <form autoComplete="off" onSubmit={handleSubmit}>
               <div className="row m-0">
                 {/* Email Field - Fixed */}
-                <div className="col-12 mb-4">
+                <div className="col-12 mb-4 p-0">
                   <label className="form-label fw-semibold text-secondary">
                     Email
                   </label>
@@ -132,7 +132,7 @@ const Login = () => {
                 </div>
 
                 {/* Password Field */}
-                <div className="col-12 mb-4">
+                <div className="col-12 mb-4 p-0">
                   <label className="form-label fw-semibold text-secondary">
                     Password
                   </label>
@@ -167,7 +167,7 @@ const Login = () => {
                 </div>
 
                 {/* Submit Button */}
-                <div className="col-12 mt-2">
+                <div className="col-12 mt-2 p-0">
                   <Button
                     variant="contained"
                     color="primary"

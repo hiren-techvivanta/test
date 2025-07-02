@@ -466,9 +466,9 @@ const BankAccountList = () => {
                                     <th className="main-table">
                                       ACCOUNT NUMBER
                                     </th>
-                                    <th className="main-table">CURRENCY</th>
-                                    <th className="main-table">BALANCE</th>
-                                    <th className="text-center">ACTION</th>
+                                    <th className="main-table-2">CURRENCY</th>
+                                    <th className="main-table-2">BALANCE</th>
+                                    <th className="">ACTION</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -508,10 +508,10 @@ const BankAccountList = () => {
                                         <td className="main-table">
                                           {account.account_number || "N/A"}
                                         </td>
-                                        <td className="main-table">
+                                        <td className="main-table-2">
                                           {account.currency || "N/A"}
                                         </td>
-                                        <td className="main-table">
+                                        <td className="main-table-2">
                                           {account.balance || "0.00"}
                                         </td>
                                         <td>

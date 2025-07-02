@@ -484,9 +484,9 @@ const MoneyArtTransaction = () => {
                                   <th className="main-table">BILL REF NO</th>
                                   <th className="main-table">USER</th>
                                   <th className="main-table">MOBILE NO.</th>
-                                  <th className="main-table">STATUS</th>
-                                  <th className="main-table">AMOUNT</th>
-                                  <th className="main-table text-center">
+                                  <th className="main-table-2">STATUS</th>
+                                  <th className="main-table-2">AMOUNT</th>
+                                  <th className="text-center">
                                     ACTION
                                   </th>
                                 </tr>
@@ -536,10 +536,10 @@ const MoneyArtTransaction = () => {
                                       <td className="main-table">
                                         {txn.user_details?.phone_number}
                                       </td>
-                                      <td className="main-table">
+                                      <td className="main-table-2">
                                         {getStatusBadge(txn.status)}
                                       </td>
-                                      <td className="main-table">
+                                      <td className="main-table-2">
                                         $ {txn.amount}
                                       </td>
                                       <td>

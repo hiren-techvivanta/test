@@ -451,10 +451,10 @@ const AeroPayCardList = () => {
                                       CARD HOLDER PHONE
                                     </th>
                                     <th className="main-table">CARD NUMBER</th>
-                                    <th className="main-table">STATUS</th>
-                                    <th className="main-table">TYPE</th>
+                                    <th className="main-table-2">STATUS</th>
+                                    <th className="main-table-2">TYPE</th>
                                     <th className="main-table">CREATED AT</th>
-                                    <th className="main-table text-center">
+                                    <th className=" text-center">
                                       ACTION
                                     </th>
                                   </tr>
@@ -500,10 +500,10 @@ const AeroPayCardList = () => {
                                         <td className="main-table">
                                           {card.masked_pan || "N/A"}
                                         </td>
-                                        <td className="main-table">
+                                        <td className="main-table-2">
                                           {getStatusBadge(card.status)}
                                         </td>
-                                        <td className="main-table">
+                                        <td className="main-table-2">
                                           {card.type}
                                         </td>
                                         <td className="main-table">
@@ -511,7 +511,7 @@ const AeroPayCardList = () => {
                                             "DD/MM/YYYY hh:mm A"
                                           )}
                                         </td>
-                                        <td className="main-table">
+                                        <td className="">
                                           <div className="d-flex justify-content-around">
                                             <Tooltip title="View Details">
                                               <IconButton

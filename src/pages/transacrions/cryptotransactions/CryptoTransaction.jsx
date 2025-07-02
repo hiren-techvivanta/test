@@ -430,12 +430,12 @@ const CryptoTransaction = () => {
                                   >
                                     <th>#</th>
                                     <th className="main-table">EMAIL</th>
-                                    <th className="main-table">COIN</th>
+                                    <th className="main-table-2">COIN</th>
                                     <th className="main-table">AMOUNT</th>
-                                    <th className="main-table">TYPE</th>
-                                    <th className="main-table">STATUS</th>
+                                    <th className="main-table-2">TYPE</th>
+                                    <th className="main-table-2">STATUS</th>
                                     <th className="main-table">CREATED AT</th>
-                                    <th className="main-table text-center">
+                                    <th className="text-center">
                                       ACTION
                                     </th>
                                   </tr>
@@ -470,7 +470,7 @@ const CryptoTransaction = () => {
                                         <td className="main-table">
                                           {txn.user_details?.email || "N/A"}
                                         </td>
-                                        <td className="main-table">
+                                        <td className="main-table-2">
                                           {txn.coin || "N/A"}
                                         </td>
                                         <td className="main-table">
@@ -480,10 +480,10 @@ const CryptoTransaction = () => {
                                                 .replace(/\.?0+$/, "")
                                             : "N/A"}
                                         </td>
-                                        <td className="main-table">
+                                        <td className="main-table-2">
                                           {txn.transaction_type || "N/A"}
                                         </td>
-                                        <td className="main-table">
+                                        <td className="main-table-2">
                                           <span
                                             className={`badge bg-${
                                               txn.status === "completed"
@@ -501,7 +501,7 @@ const CryptoTransaction = () => {
                                               )
                                             : "N/A"}
                                         </td>
-                                        <td className="main-table">
+                                        <td className="">
                                           <div className="d-flex justify-content-around">
                                             <Tooltip title="View Details">
                                               <IconButton

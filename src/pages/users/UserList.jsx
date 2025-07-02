@@ -496,7 +496,7 @@ const UserList = () => {
                                 <th className="main-table">EMAIL</th>
                                 <th className="main-table">PHONE</th>
                                 <th className="main-table">KYC STATUS</th>
-                                <th>USER STATUS</th>
+                                <th className="main-table-2">STATUS</th>
                                 <th className="main-table text-center">
                                   ACTION
                                 </th>

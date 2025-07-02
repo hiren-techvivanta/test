@@ -472,13 +472,13 @@ const WalletTopup = () => {
                                     <th>#</th>
                                     <th className="main-table">USER NAME</th>
                                     <th className="main-table">USER EMAIL</th>
-                                    <th className="main-table">CURRENCY</th>
-                                    <th className="main-table">AMOUNT</th>
-                                    <th className="main-table">STATUS</th>
+                                    <th className="main-table-2">CURRENCY</th>
+                                    <th className="main-table-2">AMOUNT</th>
+                                    <th className="main-table-2">STATUS</th>
                                     <th className="main-table">
                                       TRANSACTION TIME
                                     </th>
-                                    <th className="main-table text-center">
+                                    <th className="text-center">
                                       ACTION
                                     </th>
                                   </tr>
@@ -517,16 +517,16 @@ const WalletTopup = () => {
                                         <td className="main-table">
                                           {txn?.user_email || "N/A"}
                                         </td>
-                                        <td className="main-table">
+                                        <td className="main-table-2">
                                           {txn.currency || "N/A"}
                                         </td>
-                                        <td className="main-table">
+                                        <td className="main-table-2">
                                           {formatCurrency(
                                             txn.amount,
                                             txn.currency
                                           )}
                                         </td>
-                                        <td className="main-table">
+                                        <td className="main-table-2">
                                           {getStatusBadge(txn.status)}
                                         </td>
                                         <td>
@@ -536,7 +536,7 @@ const WalletTopup = () => {
                                               )
                                             : "N/A"}
                                         </td>
-                                        <td className="main-table">
+                                        <td className="">
                                           <div className="d-flex justify-content-around">
                                             <Tooltip title="View Details">
                                               <IconButton

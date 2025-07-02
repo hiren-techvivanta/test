@@ -412,12 +412,10 @@ const WalletTransaction = () => {
                                     <th className="main-table">DATE & TIME</th>
                                     <th className="main-table">USER</th>
                                     <th className="main-table">EMAIL</th>
-                                    <th className="main-table">TYPE</th>
-                                    <th className="main-table">AMOUNT</th>
-                                    <th className="main-table">BALANCE</th>
-                                    <th className="main-table text-center">
-                                      ACTION
-                                    </th>
+                                    <th className="main-table-2">TYPE</th>
+                                    <th className="main-table-2">AMOUNT</th>
+                                    <th className="main-table-2">BALANCE</th>
+                                    <th className="text-center">ACTION</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -459,7 +457,7 @@ const WalletTransaction = () => {
                                         <td className="main-table">
                                           {txn.user_details?.email}
                                         </td>
-                                        <td className="main-table">
+                                        <td>
                                           <span
                                             className={`badge bg-${
                                               txn.transaction_type === "credit"
@@ -470,13 +468,11 @@ const WalletTransaction = () => {
                                             {txn.transaction_type}
                                           </span>
                                         </td>
-                                        <td className="main-table">
-                                          $ {txn.amount}
+                                        <td>${txn.amount}</td>
+                                        <td>
+                                          ${txn.balance_after_transaction}
                                         </td>
-                                        <td className="main-table">
-                                          $ {txn.balance_after_transaction}
-                                        </td>
-                                        <td className="main-table">
+                                        <td>
                                           <div className="d-flex justify-content-around">
                                             <Tooltip title="View Details">
                                               <IconButton
