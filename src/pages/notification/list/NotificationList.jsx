@@ -40,6 +40,12 @@ const NotificationList = () => {
                   className="col-12 py-3"
                   style={{ background: "#EEEEEE", minHeight: "93vh" }}
                 >
+                  <div className="alert alert-info">
+                    <span>
+                      <i className="ai-circle-alert me-2"></i>
+                    </span>
+                    This page have dummy data, Api not added yet.
+                  </div>
                   <div className="frame-1597880849">
                     <div className="all-members-list">Notification List</div>
                   </div>

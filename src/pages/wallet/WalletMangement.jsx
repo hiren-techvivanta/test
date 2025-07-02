@@ -44,7 +44,7 @@ const WalletManagement = () => {
         err.response?.data?.error ||
         err.message ||
         "Failed to fetch user balance";
-      setEmailError(errorMsg); // NEW: Set email error
+      setEmailError(errorMsg);
       setBalance(null);
     } finally {
       setLoading(false);
@@ -116,7 +116,7 @@ const WalletManagement = () => {
     } catch (err) {
       const errorMsg =
         err.response?.data?.error || err.message || "Transaction failed";
-      toast.error(`Error: ${errorMsg}`);
+      toast.error(errorMsg);
     } finally {
       setActionLoading("");
     }
@@ -182,6 +182,7 @@ const WalletManagement = () => {
                                 backgroundColor: "#f5f5f5",
                               },
                             }}
+                            disabled={loading || balance}
                           />
                         </div>
 
@@ -264,7 +265,9 @@ const WalletManagement = () => {
                               type="button"
                               color="success"
                               onClick={() => handleWalletAction("add")}
-                              disabled={actionLoading === "add" || !amount}
+                              disabled={
+                                actionLoading === "add" || !amount || !email
+                              }
                               sx={{ height: "55px" }}
                             >
                               {actionLoading === "add" ? (
@@ -286,7 +289,9 @@ const WalletManagement = () => {
                               color="error"
                               sx={{ height: "55px" }}
                               onClick={() => handleWalletAction("remove")}
-                              disabled={actionLoading === "remove" || !amount}
+                              disabled={
+                                actionLoading === "remove" || !amount || !email
+                              }
                             >
                               {actionLoading === "remove" ? (
                                 <>
