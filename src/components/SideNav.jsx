@@ -29,12 +29,17 @@ import {
   NoteRounded,
   NotificationsActiveRounded,
   CheckCircleOutlineRounded,
-  FlightTakeoffRounded
+  FlightTakeoffRounded,
 } from "@mui/icons-material";
+
+import PeopleRoundedIcon from "@mui/icons-material/PeopleRounded";
+import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
+import KeyboardArrowUpRoundedIcon from "@mui/icons-material/KeyboardArrowUpRounded";
 
 const Nav = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [openDropdowns, setOpenDropdowns] = useState({});
   const [adminData, setAdminData] = useState({
     name: "Isabella Bocouse",
     email: "bocouse@example.com",
@@ -48,58 +53,192 @@ const Nav = () => {
     }
   }, []);
 
-    const routeMapping = {
-    'manage-users': {
+  const routeMapping = {
+    "manage-users": {
       "All User": "/users",
-      "User Referrals": "/user/referrals"
+      "User Referrals": "/user/referrals",
     },
-    'wallet' : {
-      "Wallet Mangement" : "/wallet/mangement",
-      "Wallet Transaction" : "/wallet/transaction"
+    wallet: {
+      "Wallet Mangement": "/wallet/mangement",
+      "Wallet Transaction": "/wallet/transaction",
     },
-    'bank' : {
-      "Bank Account List" : "/bank-accounts",
-      "Aeropay Card List" : "/card/list"
+    bank: {
+      "Bank Account List": "/bank-accounts",
+      "Aeropay Card List": "/card/list",
     },
-    'transaction' : {
-      "Moneyart Bill Transaction" : "/moneyart/transaction",
-      "Crypto Transaction" : "/cripto/transaction",
-      "Wallet Topup" : "/wallet-topup/transaction",
-      "Mobile Recharge Trancaction" : "/mobile/recharge/transaction",
-      "Flight Booking Transaction" : "/flight/booking"
+    transaction: {
+      "Moneyart Bill Transaction": "/moneyart/transaction",
+      "Crypto Transaction": "/cripto/transaction",
+      "Wallet Topup": "/wallet-topup/transaction",
+      "Mobile Recharge Trancaction": "/mobile/recharge/transaction",
+      "Flight Booking Transaction": "/flight/booking",
     },
-    'notification' : {
-      "Send NoTification" : "/notification/send",
-      "Notification List": "/notification/list"
-    }
+    notification: {
+      "Send NoTification": "/notification/send",
+      "Notification List": "/notification/list",
+    },
   };
 
   const dropdownOptions = {
-    'manage-users': [
-      "All User",
-      "User Referrals",
-    ],
-    'wallet' : [
-      "Wallet Mangement",
-      "Wallet Transaction"
-    ],
-    'bank' : [
-      "Bank Account List",
-      "Aeropay Card List"
-    ],
-    'transaction' : [
+    "manage-users": ["All User", "User Referrals"],
+    wallet: ["Wallet Mangement", "Wallet Transaction"],
+    bank: ["Bank Account List", "Aeropay Card List"],
+    transaction: [
       "Moneyart Bill Transaction",
       "Crypto Transaction",
       "Wallet Topup",
       "Mobile Recharge Trancaction",
-      "Flight Booking Transaction"
+      "Flight Booking Transaction",
     ],
-     'notification' : [
-      "Send NoTification",
-      "Notification List"
-     ]
+    notification: ["Send NoTification", "Notification List"],
   };
 
+  // Get current active option based on current route
+  const getCurrentActiveOption = (dropdownKey) => {
+    const routes = routeMapping[dropdownKey];
+    if (!routes) return null;
+
+    for (const [option, route] of Object.entries(routes)) {
+      if (location.pathname === route) {
+        return option;
+      }
+    }
+    return null; // Return null if no route matches
+  };
+
+  // Initialize active options based on current route
+  const [activeOptions, setActiveOptions] = useState(() => {
+    const initialOptions = {};
+    Object.keys(dropdownOptions).forEach((key) => {
+      initialOptions[key] = getCurrentActiveOption(key);
+    });
+    return initialOptions;
+  });
+
+  // Check if current route belongs to a dropdown section
+  const isDropdownActive = (dropdownKey) => {
+    const routes = routeMapping[dropdownKey];
+    if (!routes) return false;
+
+    // Check if current pathname matches any route in this dropdown
+    return Object.values(routes).includes(location.pathname);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const isClickInsideAnyDropdown = Object.keys(openDropdowns).some(
+        (key) => {
+          const element = document.querySelector(`[data-dropdown="${key}"]`);
+          return element && element.contains(event.target);
+        }
+      );
+
+      if (!isClickInsideAnyDropdown) {
+        setOpenDropdowns({});
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [openDropdowns]);
+
+  // Update active options when route changes
+  useEffect(() => {
+    const newActiveOptions = {};
+    Object.keys(dropdownOptions).forEach((key) => {
+      newActiveOptions[key] = getCurrentActiveOption(key);
+    });
+    setActiveOptions(newActiveOptions);
+  }, [location.pathname]);
+
+  const toggleDropdown = (dropdownKey, e) => {
+    e.stopPropagation();
+
+    // Close other dropdowns and toggle current one
+    setOpenDropdowns((prev) => {
+      const newState = {};
+      // Close all other dropdowns
+      Object.keys(prev).forEach((key) => {
+        if (key !== dropdownKey) {
+          newState[key] = false;
+        }
+      });
+      // Toggle current dropdown
+      newState[dropdownKey] = !prev[dropdownKey];
+      return newState;
+    });
+  };
+
+  const handleOptionSelect = (dropdownKey, option, e) => {
+    e.stopPropagation();
+
+    // Navigate to the corresponding route
+    const route = routeMapping[dropdownKey]?.[option];
+    if (route) {
+      navigate(route);
+    }
+
+    // Update active option
+    setActiveOptions((prev) => ({
+      ...prev,
+      [dropdownKey]: option,
+    }));
+
+    // Close dropdown
+    setOpenDropdowns((prev) => ({
+      ...prev,
+      [dropdownKey]: false,
+    }));
+  };
+
+  const handleDashboardClick = () => {
+    navigate("/");
+  };
+
+  const renderDropdown = (key, title, options, icon) => (
+    <div className="col-12" key={key}>
+      <div className="dropdown-wrapper" data-dropdown={key}>
+        {/* Dropdown Header */}
+        <div
+          className={`dropdown-header ${
+            isDropdownActive(key) || openDropdowns[key] ? "active-dropdown" : ""
+          }`}
+          onClick={(e) => toggleDropdown(key, e)}
+        >
+          <div className="dropdown-header-content">
+            {icon}
+            {/* <PeopleRoundedIcon className="users-icon" /> */}
+            <span className="manage-users-text">{title}</span>
+          </div>
+          {openDropdowns[key] ? (
+            <KeyboardArrowUpRoundedIcon className="chevron-icon" />
+          ) : (
+            <KeyboardArrowDownRoundedIcon className="chevron-icon" />
+          )}
+        </div>
+
+        {/* Dropdown Menu with Animation */}
+        {openDropdowns[key] && (
+          <div className="dropdown-menu dropdown-menu-open">
+            {options.map((option, index) => (
+              <div
+                key={option}
+                className={`dropdown-item ${
+                  activeOptions[key] === option ? "active" : ""
+                } ${index === options.length - 1 ? "last-item" : ""}`}
+                onClick={(e) => handleOptionSelect(key, option, e)}
+              >
+                {option}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   const navItems = [
     {
@@ -198,9 +337,9 @@ const Nav = () => {
     <div
       className="nav-container border-end d-flex flex-column"
       style={{
-        // height: "auto",
+        height: "auto",
         // overflowY: "auto",
-        backgroundColor:"#fff",
+        backgroundColor: "#fff",
         padding: "20px 0",
       }}
     >
@@ -223,7 +362,7 @@ const Nav = () => {
 
       {/* Navigation Items */}
       <div className="container-fluid p-0">
-        <div className="row g-3 mt-4 mx-0">
+        <div className="row g-3 mt-4 mx-0 position-relative h-auto">
           {navItems.map((item, ind) => (
             <div className="col-12" key={ind}>
               <div
@@ -238,6 +377,36 @@ const Nav = () => {
               </div>
             </div>
           ))}
+          {/* {renderDropdown(
+            "manage-users",
+            "Manage Users",
+            dropdownOptions["manage-users"],
+            <PersonRounded className="users-icon" />
+          )}
+          {renderDropdown(
+            "wallet",
+            "Wallet",
+            dropdownOptions["wallet"],
+            <WalletRounded className="users-icon" />
+          )}
+          {renderDropdown(
+            "bank",
+            "Bank",
+            dropdownOptions["bank"],
+            <AccountBalanceRounded className="users-icon" />
+          )}
+          {renderDropdown(
+            "transaction",
+            "Transaction",
+            dropdownOptions["transaction"],
+            <ListRounded className="users-icon" />
+          )}
+          {renderDropdown(
+            "notification",
+            "Notification",
+            dropdownOptions["notification"],
+            <NotificationsActiveRounded className="users-icon" />
+          )} */}
         </div>
       </div>
     </div>

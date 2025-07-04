@@ -279,7 +279,7 @@ const UserRefList = () => {
                                       >
                                        <div className="me-1 me-sm-1">
                                         <div className="fs-sm text-body-secondary mb-2">
-                                            #
+                                            
                                           </div>
                                           <div className="fs-sm fw-medium text-dark">
                                            {(pagination.current_page - 1) *
