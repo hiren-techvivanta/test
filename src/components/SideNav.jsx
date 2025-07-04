@@ -48,8 +48,59 @@ const Nav = () => {
     }
   }, []);
 
+    const routeMapping = {
+    'manage-users': {
+      "All User": "/users",
+      "User Referrals": "/user/referrals"
+    },
+    'wallet' : {
+      "Wallet Mangement" : "/wallet/mangement",
+      "Wallet Transaction" : "/wallet/transaction"
+    },
+    'bank' : {
+      "Bank Account List" : "/bank-accounts",
+      "Aeropay Card List" : "/card/list"
+    },
+    'transaction' : {
+      "Moneyart Bill Transaction" : "/moneyart/transaction",
+      "Crypto Transaction" : "/cripto/transaction",
+      "Wallet Topup" : "/wallet-topup/transaction",
+      "Mobile Recharge Trancaction" : "/mobile/recharge/transaction",
+      "Flight Booking Transaction" : "/flight/booking"
+    },
+    'notification' : {
+      "Send NoTification" : "/notification/send",
+      "Notification List": "/notification/list"
+    }
+  };
 
-  // Define navigation items
+  const dropdownOptions = {
+    'manage-users': [
+      "All User",
+      "User Referrals",
+    ],
+    'wallet' : [
+      "Wallet Mangement",
+      "Wallet Transaction"
+    ],
+    'bank' : [
+      "Bank Account List",
+      "Aeropay Card List"
+    ],
+    'transaction' : [
+      "Moneyart Bill Transaction",
+      "Crypto Transaction",
+      "Wallet Topup",
+      "Mobile Recharge Trancaction",
+      "Flight Booking Transaction"
+    ],
+     'notification' : [
+      "Send NoTification",
+      "Notification List"
+     ]
+  };
+
+
   const navItems = [
     {
       path: "/",

@@ -11,7 +11,7 @@ const token = Cookies.get("authToken");
 const WalletManagement = () => {
   const [email, setEmail] = useState("");
   const [balance, setBalance] = useState(null);
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState();
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState("");
 
@@ -123,7 +123,7 @@ const WalletManagement = () => {
   };
 
   const handleAmountChange = (e) => {
-    const raw = e.target.value.replace(/\D/g, "");
+    const raw = e.target.value
     if (raw.length <= 8) {
       setAmount(raw);
       if (amountError) setAmountError("");
@@ -243,7 +243,7 @@ const WalletManagement = () => {
                               value={amount}
                               onChange={handleAmountChange}
                               onKeyPress={(e) => {
-                                if (!/[0-9]/.test(e.key)) {
+                                if (!/[0-9.]/.test(e.key)) {
                                   e.preventDefault();
                                 }
                               }}
