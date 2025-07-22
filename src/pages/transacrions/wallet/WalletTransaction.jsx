@@ -183,6 +183,7 @@ const WalletTransaction = () => {
   // Handle page change
   const handlePageChange = (event, page) => {
     setPagination((prev) => ({ ...prev, current_page: page }));
+    getData(page);
   };
 
   // Handle rows per page change
