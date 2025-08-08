@@ -35,6 +35,7 @@ import {
 import PeopleRoundedIcon from "@mui/icons-material/PeopleRounded";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 import KeyboardArrowUpRoundedIcon from "@mui/icons-material/KeyboardArrowUpRounded";
+import RequestQuoteRoundedIcon from '@mui/icons-material/RequestQuoteRounded';
 
 const Nav = () => {
   const navigate = useNavigate();
@@ -320,6 +321,11 @@ const Nav = () => {
       path: "/flight/booking",
       label: "Flight Booking List",
       icon: <FlightTakeoffRounded />,
+    },
+    {
+      path: "/pay-out",
+      label: "Payout Transaction",
+      icon: <RequestQuoteRoundedIcon />,
     },
     {
       path: "/profile",

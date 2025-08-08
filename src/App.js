@@ -29,6 +29,7 @@ import WalletTopup from "./pages/wallet/WalletTopup.jsx";
 import UserRefList from "./pages/referrals/UserRefList.jsx";
 import FlightBooking from "./pages/flightBooking/FlightBooking.jsx";
 import ScrollToTop from "./components/ScrollToTop.jsx";
+import PayoutTransaction from "./pages/transacrions/payout/PayoutTransaction.jsx";
 
 function App() {
   return (
@@ -63,6 +64,7 @@ function App() {
           <Route path="/wallet-topup/transaction" element={<WalletTopup />} />
           <Route path="/user/referrals" element={<UserRefList />} />
           <Route path="/flight/booking" element={<FlightBooking />} />
+           <Route path="/pay-out" element={<PayoutTransaction />} />
 
           <Route path="*" element={<Error404 />} />
         </Routes>
