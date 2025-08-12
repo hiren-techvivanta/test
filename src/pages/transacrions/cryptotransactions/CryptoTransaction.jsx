@@ -65,7 +65,7 @@ const CryptoTransaction = () => {
 
   const token = Cookies.get("authToken");
 
-  const getData = async (page = 1, pageSize = resultsPerPage) => {
+  const getData = async (page = currentPage, pageSize = resultsPerPage) => {
     setLoading(true);
     try {
       const params = {
